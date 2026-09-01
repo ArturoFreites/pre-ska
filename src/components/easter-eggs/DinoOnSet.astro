@@ -1,0 +1,403 @@
+---
+/**
+ * DINO ON SET — fullscreen easter-egg overlay for SKA Studio.
+ * Mounted hidden; opened via logo multi-click or typing "dino".
+ */
+---
+
+<div
+	id="dino-on-set"
+	class="dino"
+	hidden
+	aria-hidden="true"
+	role="dialog"
+	aria-modal="true"
+	aria-label="Dino on Set — minijuego"
+>
+	<div class="dino__chrome">
+		<button type="button" class="dino__icon-btn" data-dino-close aria-label="Cerrar minijuego">
+			✕
+		</button>
+		<button
+			type="button"
+			class="dino__icon-btn dino__mute"
+			data-dino-mute
+			aria-label="Activar sonido"
+			aria-pressed="true"
+			title="Sonido (muteado por defecto)"
+		>
+			♪
+		</button>
+	</div>
+
+	<header class="dino__hud" aria-live="polite">
+		<span class="dino__rec" data-dino-rec>REC ● 00:00:00:00</span>
+		<span class="dino__stage" data-dino-stage>PREPRODUCCIÓN</span>
+		<span class="dino__best" data-dino-best>MEJOR MARCA 00:00:00:00</span>
+	</header>
+
+	<p class="dino__toast" data-dino-toast hidden></p>
+
+	<canvas class="dino__canvas" data-dino-canvas aria-hidden="true"></canvas>
+
+	<div class="dino__start" data-dino-start>
+		<p class="dino__title">DINO ON SET</p>
+		<p class="dino__nosignal">NO SIGNAL</p>
+		<p class="dino__sub">PERO SEGUIMOS RODANDO</p>
+		<p class="dino__hint">SPACE PARA EMPEZAR</p>
+		<p class="dino__hint dino__hint--touch">TOCÁ PARA EMPEZAR</p>
+	</div>
+
+	<div class="dino__over" data-dino-over hidden>
+		<p class="dino__cut">CORTE</p>
+		<p class="dino__over-line" data-dino-over-sub>ESA ERA ENSAYO</p>
+		<div class="dino__stats">
+			<p class="dino__meta">Duración <span data-dino-duration>00:00:00:00</span></p>
+			<p class="dino__meta">Mejor marca <span data-dino-over-best>00:00:00:00</span></p>
+		</div>
+		<button type="button" class="dino__cta" data-dino-retry aria-label="Nueva toma">
+			NUEVA TOMA
+		</button>
+		<button type="button" class="dino__link" data-dino-back aria-label="Volver al sitio">
+			Volver al sitio
+		</button>
+	</div>
+
+	<button
+		type="button"
+		class="dino__duck"
+		data-dino-duck
+		hidden
+		aria-label="Agacharse"
+	>
+		↓
+	</button>
+</div>
+
+<style>
+	.dino {
+		--dino-ink: #ffffff;
+		--dino-bg: #5c0c0e;
+		--dino-bg-deep: #3a080a;
+		--dino-rec: #ff3b3b;
+		--dino-font-display: var(--font-black, "Archivo Black", "Arial Black", Arial, sans-serif);
+		--dino-font-ui: var(--font-counter, "Montserrat", Arial, sans-serif);
+		--dino-font-body: var(--font-arial, Arial, Helvetica, sans-serif);
+
+		position: fixed;
+		inset: 0;
+		z-index: 100;
+		display: grid;
+		place-items: stretch;
+		background:
+			linear-gradient(180deg, rgba(0, 0, 0, 0.25), transparent 30%),
+			var(--dino-bg);
+		color: var(--dino-ink);
+		opacity: 0;
+		transform: scale(1.02);
+		pointer-events: none;
+		transition:
+			opacity 0.35s ease,
+			transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.dino.is-open {
+		opacity: 1;
+		transform: none;
+		pointer-events: auto;
+	}
+
+	.dino.is-reduced,
+	.dino.is-reduced.is-open {
+		transition: none;
+		transform: none;
+	}
+
+	.dino[hidden] {
+		display: none !important;
+	}
+
+	.dino__start[hidden],
+	.dino__over[hidden],
+	.dino__toast[hidden],
+	.dino__duck[hidden] {
+		display: none !important;
+		pointer-events: none !important;
+	}
+
+	.dino__chrome {
+		position: absolute;
+		top: max(0.75rem, env(safe-area-inset-top, 0px));
+		right: max(0.75rem, env(safe-area-inset-right, 0px));
+		z-index: 5;
+		display: flex;
+		gap: 0.4rem;
+	}
+
+	.dino__icon-btn {
+		appearance: none;
+		border: 1px solid rgba(255, 255, 255, 0.28);
+		background: rgba(0, 0, 0, 0.25);
+		color: var(--dino-ink);
+		width: 2.25rem;
+		height: 2.25rem;
+		font-size: 0.95rem;
+		line-height: 1;
+		cursor: pointer;
+		opacity: 0.7;
+		transition: opacity 0.15s ease;
+	}
+
+	.dino__icon-btn:hover,
+	.dino__icon-btn:focus-visible {
+		opacity: 1;
+		outline: 1px solid rgba(255, 255, 255, 0.5);
+		outline-offset: 2px;
+	}
+
+	.dino__hud {
+		position: absolute;
+		top: max(0.85rem, env(safe-area-inset-top, 0px));
+		left: max(0.85rem, env(safe-area-inset-left, 0px));
+		right: max(4.5rem, env(safe-area-inset-right, 0px));
+		z-index: 4;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.35rem 1.1rem;
+		font-family: var(--dino-font-ui);
+		font-weight: 800;
+		font-size: clamp(0.7rem, 2.4vw, 0.85rem);
+		letter-spacing: -0.04em;
+		font-variant-numeric: tabular-nums;
+		pointer-events: none;
+	}
+
+	.dino__rec {
+		color: var(--dino-rec);
+	}
+
+	.dino__stage {
+		opacity: 0.7;
+		font-family: var(--dino-font-body);
+		font-weight: 400;
+		font-size: 0.72em;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+	}
+
+	.dino__best {
+		opacity: 0.85;
+	}
+
+	.dino__toast {
+		position: absolute;
+		top: max(4.5rem, calc(env(safe-area-inset-top, 0px) + 3.5rem));
+		left: 50%;
+		z-index: 4;
+		transform: translateX(-50%);
+		max-width: min(92vw, 28rem);
+		padding: 0.35rem 0.75rem;
+		font-family: var(--dino-font-ui);
+		font-weight: 800;
+		font-size: clamp(0.65rem, 2.4vw, 0.85rem);
+		letter-spacing: 0.06em;
+		text-align: center;
+		text-wrap: balance;
+		background: rgba(0, 0, 0, 0.4);
+		pointer-events: none;
+	}
+
+	.dino__canvas {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		display: block;
+		touch-action: none;
+		cursor: pointer;
+	}
+
+	.dino__start,
+	.dino__over {
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		padding: 1.5rem;
+		text-align: center;
+		pointer-events: none;
+		background: radial-gradient(ellipse at center, rgba(92, 12, 14, 0.55), rgba(58, 8, 10, 0.72));
+	}
+
+	.dino__over {
+		pointer-events: auto;
+		background: rgba(26, 6, 8, 0.78);
+	}
+
+	.dino__title {
+		font-family: var(--dino-font-display);
+		font-size: clamp(0.75rem, 2.5vw, 0.95rem);
+		letter-spacing: 0.28em;
+		opacity: 0.55;
+		margin-bottom: 0.6rem;
+	}
+
+	.dino__nosignal,
+	.dino__cut {
+		font-family: var(--dino-font-display);
+		font-weight: 400;
+		font-size: clamp(2.4rem, 10vw, 4.5rem);
+		line-height: 0.9;
+		letter-spacing: -0.08em;
+	}
+
+	.dino__cut {
+		color: var(--dino-rec);
+		font-size: clamp(1.6rem, 6vw, 2.4rem);
+		letter-spacing: 0.08em;
+		opacity: 0.9;
+	}
+
+	.dino__over-line {
+		font-family: var(--dino-font-display);
+		font-weight: 400;
+		font-size: clamp(1.55rem, 6.5vw, 2.6rem);
+		line-height: 0.95;
+		letter-spacing: -0.06em;
+		text-wrap: balance;
+		max-width: 16ch;
+		margin-top: 0.15rem;
+		margin-bottom: 0.35rem;
+	}
+
+	.dino__sub {
+		font-family: var(--dino-font-display);
+		font-size: clamp(0.95rem, 3.5vw, 1.35rem);
+		letter-spacing: -0.04em;
+		opacity: 0.9;
+	}
+
+	.dino__stats {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.2rem;
+		margin-top: 0.85rem;
+		opacity: 0.85;
+	}
+
+	.dino__hint {
+		margin-top: 1.25rem;
+		font-family: var(--dino-font-ui);
+		font-weight: 800;
+		font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+		letter-spacing: 0.08em;
+		opacity: 0.7;
+		animation: dino-blink 1.4s steps(2, end) infinite;
+	}
+
+	.dino__hint--touch {
+		display: none;
+	}
+
+	.dino__meta {
+		font-family: var(--dino-font-ui);
+		font-weight: 800;
+		font-variant-numeric: tabular-nums;
+		font-size: clamp(0.8rem, 2.6vw, 0.95rem);
+		letter-spacing: -0.04em;
+	}
+
+	.dino__meta span {
+		margin-left: 0.25em;
+	}
+
+	.dino__cta,
+	.dino__link {
+		pointer-events: auto;
+		appearance: none;
+		border: 0;
+		cursor: pointer;
+		font-family: var(--dino-font-display);
+		letter-spacing: -0.04em;
+	}
+
+	.dino__cta {
+		margin-top: 1.25rem;
+		padding: 0.7rem 1.4rem;
+		background: var(--dino-ink);
+		color: var(--dino-bg-deep);
+		font-size: clamp(0.95rem, 3vw, 1.15rem);
+		transition: opacity 0.15s ease;
+	}
+
+	.dino__cta:hover,
+	.dino__cta:focus-visible {
+		opacity: 0.85;
+		outline: 2px solid rgba(255, 255, 255, 0.6);
+		outline-offset: 3px;
+	}
+
+	.dino__link {
+		margin-top: 0.75rem;
+		background: transparent;
+		color: var(--dino-ink);
+		font-family: var(--dino-font-body);
+		font-size: 0.85rem;
+		opacity: 0.65;
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+	}
+
+	.dino__link:hover,
+	.dino__link:focus-visible {
+		opacity: 1;
+	}
+
+	.dino__duck {
+		position: absolute;
+		bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+		right: max(1.25rem, env(safe-area-inset-right, 0px));
+		z-index: 5;
+		width: 3.25rem;
+		height: 3.25rem;
+		border: 1px solid rgba(255, 255, 255, 0.35);
+		background: rgba(0, 0, 0, 0.35);
+		color: #fff;
+		font-size: 1.25rem;
+		cursor: pointer;
+		touch-action: none;
+		user-select: none;
+	}
+
+	@keyframes dino-blink {
+		50% {
+			opacity: 0.25;
+		}
+	}
+
+	@media (pointer: coarse) {
+		.dino__hint:not(.dino__hint--touch) {
+			display: none;
+		}
+		.dino__hint--touch {
+			display: block;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.dino,
+		.dino.is-open {
+			transition: none;
+			transform: none;
+		}
+		.dino__hint {
+			animation: none;
+		}
+	}
+</style>

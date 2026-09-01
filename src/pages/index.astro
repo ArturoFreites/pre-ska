@@ -1,16 +1,19 @@
 ---
+import DinoOnSet from "../components/easter-eggs/DinoOnSet.astro";
+
 const targetDate = "2026-09-21T00:00:00-03:00";
 ---
 
 <html lang="es">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
+		<link rel="icon" type="image/png" href="/favicon-32.png" />
+		<link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="description" content="SKA Studio — tus ideas, hechas realidad. 21/09" />
-		<title>SKA Studio</title>
+		<meta name="description" content="ska.prd — tus ideas, hechas realidad. 21/09" />
+		<title>ska.prd</title>
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
@@ -32,11 +35,11 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 				<section class="launch" aria-label="Lanzamiento">
 					<a
 						class="handle"
-						href="https://instagram.com/ska.studio"
+						href="https://instagram.com/ska.prd"
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						@ska.studio
+						@ska.prd
 					</a>
 					<p class="date" aria-label="21/09">
 						<span aria-hidden="true">21</span><span class="slash" aria-hidden="true"></span><span aria-hidden="true">09</span>
@@ -65,12 +68,29 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 				</section>
 
 				<footer class="brand">
-					<span class="logo" role="img" aria-label="SKA"></span>
+					<button
+						type="button"
+						class="logo logo--trigger"
+						data-dino-trigger
+						aria-label="SKA"
+					></button>
+					<button
+						type="button"
+						class="play-egg"
+						data-dino-open
+						aria-label="Jugar Dino on Set"
+					>
+						<span class="play-egg__icon" aria-hidden="true"></span>
+					</button>
 				</footer>
 			</div>
 		</main>
 
+		<DinoOnSet />
+
 		<script>
+			import { mountDinoGame, bindDinoTriggers } from "../scripts/dino-game";
+
 			const splash = document.getElementById("splash");
 			const home = document.getElementById("home");
 			const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -120,6 +140,18 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 
 				tick();
 				setInterval(tick, 1000);
+			}
+
+			const dinoRoot = document.getElementById("dino-on-set");
+			if (dinoRoot) {
+				const api = mountDinoGame(dinoRoot);
+				const triggers = [
+					...document.querySelectorAll<HTMLElement>("[data-dino-trigger]"),
+				];
+				bindDinoTriggers(api, triggers);
+				for (const btn of document.querySelectorAll<HTMLElement>("[data-dino-open]")) {
+					btn.addEventListener("click", () => api.open());
+				}
 			}
 		</script>
 	</body>
@@ -375,6 +407,10 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 
 	.brand {
 		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.85rem;
 	}
 
 	.stage.is-ready .brand {
@@ -398,6 +434,66 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 		mask-position: center;
 		user-select: none;
 		pointer-events: none;
+	}
+
+	/* Easter egg hit target — looks identical; no visual affordance */
+	.logo--trigger {
+		appearance: none;
+		border: 0;
+		padding: 0;
+		margin: 0;
+		cursor: default;
+		pointer-events: auto;
+		background-color: #fff;
+	}
+
+	.logo--trigger:focus {
+		outline: none;
+	}
+
+	.logo--trigger:focus-visible {
+		outline: 2px solid rgba(255, 255, 255, 0.45);
+		outline-offset: 4px;
+	}
+
+	.play-egg {
+		appearance: none;
+		border: 1px solid rgba(255, 255, 255, 0.9);
+		background: transparent;
+		width: 2.35rem;
+		height: 2.35rem;
+		border-radius: 50%;
+		display: grid;
+		place-items: center;
+		cursor: pointer;
+		opacity: 1;
+		transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+	}
+
+	.play-egg:hover,
+	.play-egg:focus-visible {
+		opacity: 0.75;
+		border-color: #fff;
+		outline: none;
+	}
+
+	.play-egg:focus-visible {
+		outline: 2px solid rgba(255, 255, 255, 0.45);
+		outline-offset: 3px;
+	}
+
+	.play-egg:active {
+		transform: scale(0.94);
+	}
+
+	.play-egg__icon {
+		display: block;
+		width: 0;
+		height: 0;
+		margin-left: 0.15rem;
+		border-style: solid;
+		border-width: 0.38rem 0 0.38rem 0.62rem;
+		border-color: transparent transparent transparent #fff;
 	}
 
 	@keyframes splash-sequence {
