@@ -1,0 +1,451 @@
+---
+const targetDate = "2026-09-21T00:00:00-03:00";
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content="SKA Studio — tus ideas, hechas realidad. 21/09" />
+		<title>SKA Studio</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body>
+		<div class="splash" id="splash" aria-hidden="true">
+			<span class="splash-logo logo" role="img" aria-label="SKA"></span>
+		</div>
+
+		<main class="stage is-waiting" id="home">
+			<div class="content">
+				<header class="intro">
+					<p class="tagline">tus ideas,<br />hechas realidad.</p>
+				</header>
+
+				<section class="launch" aria-label="Lanzamiento">
+					<a
+						class="handle"
+						href="https://instagram.com/ska.studio"
+						target="_blank"
+						rel="noopener noreferrer"
+					>
+						@ska.studio
+					</a>
+					<p class="date"><span>21</span><span class="slash">/</span><span>09</span></p>
+					<div class="countdown" data-target={targetDate} aria-live="polite">
+						<div class="unit">
+							<span class="value" data-unit="days">00</span>
+							<span class="label">dias</span>
+						</div>
+						<span class="sep" aria-hidden="true">:</span>
+						<div class="unit">
+							<span class="value" data-unit="hours">00</span>
+							<span class="label">horas</span>
+						</div>
+						<span class="sep" aria-hidden="true">:</span>
+						<div class="unit">
+							<span class="value" data-unit="mins">00</span>
+							<span class="label">mins</span>
+						</div>
+						<span class="sep" aria-hidden="true">:</span>
+						<div class="unit">
+							<span class="value" data-unit="segs">00</span>
+							<span class="label">segs</span>
+						</div>
+					</div>
+				</section>
+
+				<footer class="brand">
+					<span class="logo" role="img" aria-label="SKA"></span>
+				</footer>
+			</div>
+		</main>
+
+		<script>
+			const splash = document.getElementById("splash");
+			const home = document.getElementById("home");
+			const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+			const revealHome = () => {
+				home?.classList.remove("is-waiting");
+				home?.classList.add("is-ready");
+				splash?.classList.add("is-done");
+				splash?.addEventListener(
+					"transitionend",
+					() => splash.remove(),
+					{ once: true },
+				);
+				if (reduceMotion) splash?.remove();
+			};
+
+			if (reduceMotion) {
+				revealHome();
+			} else {
+				// appear ~1s + pulse ~2.2s → then fade
+				window.setTimeout(revealHome, 3400);
+			}
+
+			const root = document.querySelector<HTMLElement>(".countdown");
+			if (root) {
+				const target = new Date(root.dataset.target ?? "").getTime();
+				const daysEl = root.querySelector('[data-unit="days"]');
+				const hoursEl = root.querySelector('[data-unit="hours"]');
+				const minsEl = root.querySelector('[data-unit="mins"]');
+				const segsEl = root.querySelector('[data-unit="segs"]');
+
+				const pad = (n: number) => String(Math.max(0, n)).padStart(2, "0");
+
+				const tick = () => {
+					const diff = Math.max(0, target - Date.now());
+					const totalSecs = Math.floor(diff / 1000);
+					const days = Math.floor(totalSecs / 86400);
+					const hours = Math.floor((totalSecs % 86400) / 3600);
+					const mins = Math.floor((totalSecs % 3600) / 60);
+					const segs = totalSecs % 60;
+
+					if (daysEl) daysEl.textContent = pad(days);
+					if (hoursEl) hoursEl.textContent = pad(hours);
+					if (minsEl) minsEl.textContent = pad(mins);
+					if (segsEl) segsEl.textContent = pad(segs);
+				};
+
+				tick();
+				setInterval(tick, 1000);
+			}
+		</script>
+	</body>
+</html>
+
+<style is:global>
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
+
+	:root {
+		--ink: #ffffff;
+		--font-black: "Arial Black", "Arial Bold", Gadget, sans-serif;
+		--font-arial: Arial, Helvetica, sans-serif;
+		--font-counter: "Montserrat", Arial, sans-serif;
+	}
+
+	html,
+	body {
+		min-height: 100%;
+		height: 100%;
+	}
+
+	body {
+		font-family: var(--font-arial);
+		color: var(--ink);
+		background: #7a0f12;
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+		overflow: hidden;
+	}
+
+	a {
+		color: inherit;
+		text-decoration: none;
+	}
+</style>
+
+<style>
+	.splash {
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+		display: grid;
+		place-items: center;
+		background:
+			url("/fondo.jpg") center / cover no-repeat,
+			#7a0f12;
+		transition: opacity 0.75s ease;
+	}
+
+	.splash::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		opacity: 0.22;
+		mix-blend-mode: overlay;
+		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+		background-size: 180px 180px;
+	}
+
+	.splash.is-done {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.splash-logo {
+		position: relative;
+		z-index: 1;
+		width: clamp(31rem, 100vw, 50rem);
+		opacity: 0;
+		transform: scale(0.88);
+		animation: splash-sequence 3.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+
+	.stage {
+		position: relative;
+		isolation: isolate;
+		display: grid;
+		place-items: center;
+		min-height: 100dvh;
+		width: 100%;
+		overflow: hidden;
+		background:
+			url("/fondo.jpg") center / cover no-repeat,
+			#7a0f12;
+	}
+
+	.stage::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+		opacity: 0.22;
+		mix-blend-mode: overlay;
+		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+		background-size: 180px 180px;
+	}
+
+	.stage.is-waiting .content {
+		visibility: hidden;
+	}
+
+	.content {
+		position: relative;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-around;
+		width: min(100%, 34rem);
+		min-height: 100dvh;
+		/* Tagline ~12% desde arriba, logo ~8% desde abajo; cluster al centro */
+		padding: clamp(3.25rem, 9vh, 5.5rem) 1.25rem clamp(2.5rem, 7vh, 4.25rem);
+		text-align: center;
+	}
+
+	.stage.is-ready .intro {
+		animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+
+	.intro {
+		flex-shrink: 0;
+	}
+
+	.tagline {
+		font-family: var(--font-black);
+		font-weight: 400;
+		font-size: clamp(1.7rem, 6.5vw, 2.25rem);
+		line-height: 0.88;
+		letter-spacing: -0.09em;
+		text-wrap: balance;
+	}
+
+	.launch {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		flex-shrink: 0;
+		/* Cluster handle + fecha + countdown bien cerrado */
+		gap: 0.15rem;
+	}
+
+	.stage.is-ready .launch {
+		animation: rise 1s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+	}
+
+	.handle {
+		font-family: var(--font-black);
+		font-weight: 400;
+		/* Ligeramente menor que el tagline; ancho ~ del bloque numérico */
+		font-size: clamp(1.55rem, 6vw, 2.2rem);
+		line-height: 0.85;
+		letter-spacing: -0.095em;
+		transition: opacity 0.2s ease;
+	}
+
+	.handle:hover {
+		opacity: 0.75;
+	}
+
+	.date {
+		font-family: var(--font-black);
+		font-weight: 400;
+		font-size: clamp(7.5rem, 32vw, 11rem);
+		line-height: 0.78;
+		letter-spacing: -0.12em;
+		white-space: nowrap;
+	}
+
+	.date .slash {
+		display: inline-block;
+		margin-inline: 0 -0.06em;
+		letter-spacing: 0;
+	}
+
+	.countdown {
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		gap: 0;
+		margin-top: 0.55rem;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.unit {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.value,
+	.sep {
+		font-family: var(--font-counter);
+		font-weight: 800;
+		font-size: clamp(1.65rem, 6.5vw, 2.2rem);
+		letter-spacing: -0.07em;
+		line-height: 0.85;
+	}
+
+	.sep {
+		/* Alinea el ":" con la fila de números, no con el bloque unit+label */
+		align-self: flex-start;
+		padding-top: 0.02em;
+		margin-inline: -0.02em;
+	}
+
+	.label {
+		margin-top: 0.1em;
+		font-family: var(--font-arial);
+		font-weight: 400;
+		font-size: clamp(0.65rem, 2.4vw, 0.78rem);
+		line-height: 1;
+		letter-spacing: 0;
+	}
+
+	.brand {
+		flex-shrink: 0;
+	}
+
+	.stage.is-ready .brand {
+		animation: rise 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+	}
+
+	.logo {
+		display: block;
+		width: clamp(5.5rem, 24vw, 7rem);
+		aspect-ratio: 220 / 90;
+		background-color: #fff;
+		-webkit-mask-image: url("/logo.png");
+		mask-image: url("/logo.png");
+		-webkit-mask-mode: luminance;
+		mask-mode: luminance;
+		-webkit-mask-size: contain;
+		mask-size: contain;
+		-webkit-mask-repeat: no-repeat;
+		mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+		mask-position: center;
+		user-select: none;
+		pointer-events: none;
+	}
+
+	@keyframes splash-sequence {
+		0% {
+			opacity: 0;
+			transform: scale(0.88);
+		}
+		18% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		38% {
+			opacity: 0.7;
+			transform: scale(1.05);
+		}
+		55% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		72% {
+			opacity: 0.7;
+			transform: scale(1.05);
+		}
+		88% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
+	@keyframes rise {
+		from {
+			opacity: 0;
+			transform: translateY(14px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@media (min-width: 768px) {
+		/* Fondo ya rotado 90° a la derecha (1024×576) */
+		.stage {
+			background:
+				url("/fondo-desktop.jpg") center / cover no-repeat,
+				#7a0f12;
+		}
+
+		.splash {
+			background:
+				url("/fondo-desktop.jpg") center / cover no-repeat,
+				#7a0f12;
+		}
+
+		.content {
+			width: min(100%, 36rem);
+			padding-block: clamp(3rem, 8vh, 5rem) clamp(2.5rem, 6.5vh, 4rem);
+		}
+
+		.date {
+			font-size: 11rem;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.splash,
+		.splash-logo,
+		.stage.is-ready .intro,
+		.stage.is-ready .launch,
+		.stage.is-ready .brand {
+			animation: none;
+			transition: none;
+		}
+
+		.splash-logo {
+			opacity: 1;
+			transform: none;
+		}
+	}
+</style>
