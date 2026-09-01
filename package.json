@@ -12,7 +12,8 @@
     "astro": "astro",
     "game:prepare": "node scripts/prepare-game-assets.mjs",
     "game:sync": "node scripts/sync-game-sprites.mjs",
-    "game:shots": "node scripts/dino-shots.mjs"
+    "game:shots": "node scripts/dino-shots.mjs",
+    "og:generate": "node scripts/generate-og-image.mjs"
   },
   "dependencies": {
     "astro": "^7.2.10"
