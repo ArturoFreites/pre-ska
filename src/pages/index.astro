@@ -38,7 +38,9 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 					>
 						@ska.studio
 					</a>
-					<p class="date"><span>21</span><span class="slash">/</span><span>09</span></p>
+					<p class="date" aria-label="21/09">
+						<span aria-hidden="true">21</span><span class="slash" aria-hidden="true"></span><span aria-hidden="true">09</span>
+					</p>
 					<div class="countdown" data-target={targetDate} aria-live="polite">
 						<div class="unit">
 							<span class="value" data-unit="days">00</span>
@@ -303,20 +305,32 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 	}
 
 	.date {
+		display: inline-flex;
+		align-items: baseline;
+		justify-content: center;
 		font-family: var(--font-black);
 		font-weight: 400;
 		/* Escala al ancho útil del viewport para no desbordar en móvil */
 		font-size: clamp(4.75rem, 26vw, 11rem);
-		line-height: 0.78;
-		letter-spacing: -0.12em;
+		/* line-height < 1 desalineaba la barra respecto al ink de los dígitos */
+		line-height: 1;
 		white-space: nowrap;
 		max-width: 100%;
 	}
 
+	.date > span:not(.slash) {
+		letter-spacing: -0.12em;
+	}
+
 	.date .slash {
-		display: inline-block;
-		margin-inline: 0 -0.06em;
-		letter-spacing: 0;
+		/* Altura = cap de la fuente → mismo tope/base que los dígitos lining */
+		flex-shrink: 0;
+		width: 0.125em;
+		height: 1cap;
+		margin-inline: 0.147em 0.133em;
+		background: currentColor;
+		transform: skewX(-18deg);
+		transform-origin: center bottom;
 	}
 
 	.countdown {
