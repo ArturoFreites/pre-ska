@@ -14,7 +14,7 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@800&display=swap"
 			rel="stylesheet"
 		/>
 	</head>
@@ -134,7 +134,8 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 
 	:root {
 		--ink: #ffffff;
-		--font-black: "Arial Black", "Arial Bold", Gadget, sans-serif;
+		/* Archivo Black: web font; Arial Black no está en Safari/macOS */
+		--font-black: "Archivo Black", "Arial Black", Arial, sans-serif;
 		--font-arial: Arial, Helvetica, sans-serif;
 		--font-counter: "Montserrat", Arial, sans-serif;
 	}
@@ -149,7 +150,8 @@ const targetDate = "2026-09-21T00:00:00-03:00";
 		font-family: var(--font-arial);
 		color: var(--ink);
 		background: #7a0f12;
-		-webkit-font-smoothing: antialiased;
+		/* Safari: antialiased adelgaza tipografía display en blanco */
+		-webkit-font-smoothing: auto;
 		text-rendering: optimizeLegibility;
 		overflow: hidden;
 	}
