@@ -22,3 +22,10 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# capturas de verificación del easter egg
+tmp/
+
+# PNGs crudos de entrada a `npm run game:prepare`; lo que se sirve es el
+# resultado procesado en public/game/. El README con las convenciones sí va.
+public/game/inbox/*.png

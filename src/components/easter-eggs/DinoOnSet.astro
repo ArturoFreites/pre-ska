@@ -80,6 +80,7 @@
 		--dino-bg: #5c0c0e;
 		--dino-bg-deep: #3a080a;
 		--dino-rec: #ff3b3b;
+		--dino-gold: #c9a227;
 		--dino-font-display: var(--font-black, "Archivo Black", "Arial Black", Arial, sans-serif);
 		--dino-font-ui: var(--font-counter, "Montserrat", Arial, sans-serif);
 		--dino-font-body: var(--font-arial, Arial, Helvetica, sans-serif);
@@ -190,22 +191,79 @@
 		opacity: 0.85;
 	}
 
+	/* Sits in the upper third: the dino runs bottom-left and obstacles arrive
+	   along the ground line at 80% height, so this never covers the action. */
 	.dino__toast {
 		position: absolute;
-		top: max(4.5rem, calc(env(safe-area-inset-top, 0px) + 3.5rem));
+		top: max(clamp(4.5rem, 15vh, 9rem), calc(env(safe-area-inset-top, 0px) + 3.5rem));
 		left: 50%;
 		z-index: 4;
 		transform: translateX(-50%);
-		max-width: min(92vw, 28rem);
-		padding: 0.35rem 0.75rem;
-		font-family: var(--dino-font-ui);
-		font-weight: 800;
-		font-size: clamp(0.65rem, 2.4vw, 0.85rem);
-		letter-spacing: 0.06em;
+		margin: 0;
+		max-width: min(92vw, 40rem);
+		padding: 0;
+		/* Mismo tratamiento tipográfico que el tagline del home */
+		font-family: var(--dino-font-display);
+		font-weight: 400;
+		font-size: clamp(1.7rem, 6.5vw, 2.6rem);
+		line-height: 0.88;
+		letter-spacing: -0.09em;
+		text-transform: uppercase;
 		text-align: center;
 		text-wrap: balance;
-		background: rgba(0, 0, 0, 0.4);
+		color: var(--dino-ink);
+		text-shadow: 0 3px 18px rgba(0, 0, 0, 0.75);
 		pointer-events: none;
+	}
+
+	@keyframes dino-toast-in {
+		from {
+			opacity: 0;
+			transform: translate(-50%, -0.9rem) scale(0.95);
+		}
+		60% {
+			opacity: 1;
+			transform: translate(-50%, 0.14rem) scale(1.02);
+		}
+		to {
+			opacity: 1;
+			transform: translate(-50%, 0) scale(1);
+		}
+	}
+
+	@keyframes dino-toast-out {
+		from {
+			opacity: 1;
+			transform: translate(-50%, 0) scale(1);
+		}
+		to {
+			opacity: 0;
+			transform: translate(-50%, -0.65rem) scale(0.97);
+		}
+	}
+
+	.dino__toast.is-in {
+		animation: dino-toast-in 260ms cubic-bezier(0.2, 0.9, 0.25, 1.1) both;
+	}
+
+	.dino__toast.is-out {
+		animation: dino-toast-out 240ms ease-in both;
+	}
+
+	.dino.is-reduced .dino__toast.is-in,
+	.dino.is-reduced .dino__toast.is-out {
+		animation: none;
+	}
+
+	.dino.is-reduced .dino__toast.is-out {
+		opacity: 0;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.dino__toast.is-in,
+		.dino__toast.is-out {
+			animation: none;
+		}
 	}
 
 	.dino__canvas {

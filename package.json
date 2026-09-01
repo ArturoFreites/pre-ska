@@ -9,10 +9,17 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "game:prepare": "node scripts/prepare-game-assets.mjs",
+    "game:sync": "node scripts/sync-game-sprites.mjs",
+    "game:shots": "node scripts/dino-shots.mjs"
   },
   "dependencies": {
     "astro": "^7.2.10"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.62.1",
+    "sharp": "^0.34.5"
   },
   "allowScripts": {
     "esbuild": true

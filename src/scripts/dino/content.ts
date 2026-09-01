@@ -13,9 +13,15 @@ export const GAME_CONFIG = {
 	jumpVelocity: 620,
 	gravity: 1850,
 	duckGravity: 2800,
-	spawnMinMs: 900,
+	/**
+	 * El salto dura 2·v/g = 0.67 s a cualquier velocidad (la física escala con
+	 * el viewport, no el tiempo). Cualquier hueco menor a eso hace que el
+	 * jugador aterrice encima del obstáculo siguiente sin poder evitarlo, así
+	 * que `spawnMinFloor` nunca debe bajar de ~800 ms.
+	 */
+	spawnMinMs: 1150,
 	spawnMaxMs: 2200,
-	spawnMinFloor: 520,
+	spawnMinFloor: 820,
 	framesPerSecond: 30,
 	storageKey: "ska-dino-best-take",
 	eventCooldownMin: 9,
@@ -29,6 +35,17 @@ export const GAME_CONFIG = {
 	airUnlockScore: 360,
 	/** Chance to roll a meme event instead of stage pool */
 	memeEventChance: 0.08,
+	/** Collision insets — fraction shrunk from each edge (higher = more forgiving) */
+	collision: {
+		playerInsetX: 0.32,
+		playerInsetTop: 0.38,
+		playerInsetBottom: 0.04,
+		playerInsetTopAir: 0.46,
+		obstacleInsetX: 0.34,
+		obstacleInsetY: 0.36,
+		airObstacleInsetY: 0.4,
+		pickupExpand: 0.2,
+	},
 } as const;
 
 /** @deprecated alias kept for existing imports */
@@ -57,12 +74,20 @@ export interface StageDef {
 	from: number;
 	/** Base fill under tint */
 	bg: string;
+	/** Top-of-sky color for the vertical gradient */
+	sky: string;
 	/** Stage tint color */
 	tint: string;
 	tintAlpha: number;
 	ground: string;
 	groundLine: string;
 	grain: number;
+	/** Capas de parallax: clave de BG_SPRITE o null para apagar la capa */
+	bgSky?: "clouds" | "hills" | "city" | null;
+	bgHorizon?: "clouds" | "hills" | "city" | null;
+	/** Opacidad de la silueta del horizonte y del decor de esquina */
+	horizonAlpha?: number;
+	decorAlpha?: number;
 	/** Bias 0–1 for argentine obstacles */
 	argBias: number;
 	/** Bias 0–1 for air obstacles (once unlocked) */
@@ -81,6 +106,7 @@ export const STAGES: StageDef[] = [
 		label: "PREPRODUCCIÓN",
 		from: 0,
 		bg: "#5c0c0e",
+		sky: "#3a0708",
 		tint: "#7a0f12",
 		tintAlpha: 0.55,
 		ground: "#2a0809",
@@ -91,12 +117,17 @@ export const STAGES: StageDef[] = [
 		eventTags: ["pre", "av", "any"],
 		sfx: "soft",
 		decor: "storyboard",
+		bgSky: "clouds",
+		bgHorizon: "hills",
+		horizonAlpha: 0.3,
+		decorAlpha: 0.26,
 	},
 	{
 		id: "rodaje",
 		label: "RODAJE",
 		from: 450,
 		bg: "#5c0c0e",
+		sky: "#40080a",
 		tint: "#8a1218",
 		tintAlpha: 0.58,
 		ground: "#2a0809",
@@ -107,6 +138,10 @@ export const STAGES: StageDef[] = [
 		eventTags: ["rodaje", "av", "any"],
 		sfx: "set",
 		decor: "cam",
+		bgSky: "clouds",
+		bgHorizon: "hills",
+		horizonAlpha: 0.36,
+		decorAlpha: 0.3,
 		enterToast: "RODANDO",
 	},
 	{
@@ -114,6 +149,7 @@ export const STAGES: StageDef[] = [
 		label: "EXTERIOR / CALLE",
 		from: 900,
 		bg: "#4a1810",
+		sky: "#7a2c14",
 		tint: "#a84828",
 		tintAlpha: 0.42,
 		ground: "#2c1410",
@@ -124,6 +160,10 @@ export const STAGES: StageDef[] = [
 		eventTags: ["calle", "arg", "av", "any"],
 		sfx: "street",
 		decor: "street",
+		bgSky: "clouds",
+		bgHorizon: "city",
+		horizonAlpha: 0.44,
+		decorAlpha: 0.32,
 		enterToast: "SALIMOS A LA CALLE",
 	},
 	{
@@ -131,6 +171,7 @@ export const STAGES: StageDef[] = [
 		label: "NOCHE DE RODAJE",
 		from: 1500,
 		bg: "#0e0814",
+		sky: "#050308",
 		tint: "#2a1040",
 		tintAlpha: 0.55,
 		ground: "#100814",
@@ -141,6 +182,10 @@ export const STAGES: StageDef[] = [
 		eventTags: ["noche", "av", "any"],
 		sfx: "night",
 		decor: "night",
+		bgSky: null,
+		bgHorizon: "city",
+		horizonAlpha: 0.5,
+		decorAlpha: 0.38,
 		enterToast: "PERDEMOS LA LUZ NATURAL",
 	},
 	{
@@ -148,6 +193,7 @@ export const STAGES: StageDef[] = [
 		label: "POSTPRODUCCIÓN",
 		from: 2200,
 		bg: "#12182a",
+		sky: "#070b16",
 		tint: "#2a3a5c",
 		tintAlpha: 0.55,
 		ground: "#0c1018",
@@ -158,6 +204,10 @@ export const STAGES: StageDef[] = [
 		eventTags: ["post", "av", "any"],
 		sfx: "post",
 		decor: "timeline",
+		bgSky: "clouds",
+		bgHorizon: "hills",
+		horizonAlpha: 0.22,
+		decorAlpha: 0.34,
 		enterToast: "A LA ISLA",
 	},
 	{
@@ -165,6 +215,7 @@ export const STAGES: StageDef[] = [
 		label: "ENTREGA / CLIENT",
 		from: 3200,
 		bg: "#1a1210",
+		sky: "#0d0908",
 		tint: "#6a3030",
 		tintAlpha: 0.5,
 		ground: "#181010",
@@ -175,6 +226,10 @@ export const STAGES: StageDef[] = [
 		eventTags: ["client", "av", "any"],
 		sfx: "client",
 		decor: "export",
+		bgSky: "clouds",
+		bgHorizon: "city",
+		horizonAlpha: 0.3,
+		decorAlpha: 0.3,
 		enterToast: "MANDO EL LINK",
 	},
 	{
@@ -182,6 +237,7 @@ export const STAGES: StageDef[] = [
 		label: "AURA MAX",
 		from: 5000,
 		bg: "#1a0a12",
+		sky: "#2a0a1c",
 		tint: "#7a0f12",
 		tintAlpha: 0.48,
 		ground: "#14080c",
@@ -192,6 +248,10 @@ export const STAGES: StageDef[] = [
 		eventTags: ["aura", "meme", "av", "any"],
 		sfx: "aura",
 		decor: "aura",
+		bgSky: "clouds",
+		bgHorizon: "hills",
+		horizonAlpha: 0.4,
+		decorAlpha: 0.4,
 		enterToast: "AURA DE DIRECTOR +9999",
 	},
 ];
@@ -221,52 +281,23 @@ export interface ObstacleDef {
 	variant?: string;
 }
 
+/**
+ * `h` es la ÚNICA medida que hay que tocar para escalar un obstáculo: el ancho
+ * sale del aspect real del PNG. Como referencia, el dino de pie mide 65 en
+ * estas mismas unidades (DINO_LAYOUT_H 44 × DINO_DISPLAY_SCALE 1.48) y los
+ * obstáculos se dibujan × WORLD_DISPLAY_SCALE (1.32), así que la altura
+ * relativa al dino es `h × 1.32 / 65`. `w` sólo se usa si falta el PNG.
+ */
 export const OBSTACLE_TYPES: ObstacleDef[] = [
-	{ id: "xlr", lane: "ground", family: "cable", w: 50, h: 10, weight: 10, pool: "av", variant: "xlr" },
-	{ id: "sdi", lane: "ground", family: "cable", w: 52, h: 10, weight: 9, pool: "av", variant: "sdi" },
-	{ id: "extension", lane: "ground", family: "cable", w: 56, h: 11, weight: 8, pool: "av", variant: "ext" },
-	{ id: "powerstrip", lane: "ground", family: "small", w: 36, h: 14, weight: 7, pool: "av", variant: "strip" },
-	{ id: "tripod", lane: "ground", family: "stand", w: 22, h: 54, weight: 10, pool: "av", variant: "tripod" },
-	{ id: "cstand", lane: "ground", family: "stand", w: 26, h: 58, weight: 7, pool: "av", variant: "cstand" },
-	{ id: "led", lane: "ground", family: "light", w: 30, h: 42, weight: 8, pool: "av", variant: "led" },
-	{ id: "fresnel", lane: "ground", family: "light", w: 28, h: 48, weight: 6, pool: "av", variant: "fresnel" },
-	{ id: "flight", lane: "ground", family: "box", w: 44, h: 30, weight: 9, pool: "av", variant: "flight" },
-	{ id: "pelican", lane: "ground", family: "box", w: 40, h: 26, weight: 7, pool: "av", variant: "pelican" },
-	{ id: "cambag", lane: "ground", family: "box", w: 34, h: 28, weight: 6, pool: "av", variant: "bag" },
-	{ id: "vmount", lane: "ground", family: "small", w: 18, h: 28, weight: 6, pool: "av", variant: "vmount" },
-	{ id: "slider", lane: "ground", family: "gear", w: 52, h: 22, weight: 5, pool: "av", variant: "slider" },
-	{ id: "clapper", lane: "ground", family: "small", w: 30, h: 26, weight: 8, pool: "av", variant: "clapper" },
-	{ id: "director", lane: "ground", family: "seat", w: 28, h: 40, weight: 5, pool: "av", variant: "chair" },
-	{ id: "termo", lane: "ground", family: "small", w: 14, h: 28, weight: 7, pool: "av", variant: "termo" },
-	{ id: "mate", lane: "ground", family: "small", w: 16, h: 20, weight: 8, pool: "av", variant: "mate" },
-	{ id: "coffee", lane: "ground", family: "small", w: 14, h: 20, weight: 8, pool: "av", variant: "coffee" },
-	{ id: "prodpack", lane: "ground", family: "box", w: 32, h: 36, weight: 5, pool: "av", variant: "pack" },
-	{ id: "cone", lane: "ground", family: "hazard", w: 20, h: 28, weight: 6, pool: "av", variant: "cone" },
-	{ id: "gaffer_roll", lane: "ground", family: "small", w: 18, h: 18, weight: 7, pool: "av", variant: "gaffer" },
-	{ id: "hdd", lane: "ground", family: "small", w: 22, h: 14, weight: 6, pool: "av", variant: "hdd" },
-	{ id: "monitor", lane: "ground", family: "gear", w: 34, h: 32, weight: 5, pool: "av", variant: "monitor" },
-	{ id: "gimbal", lane: "ground", family: "gear", w: 24, h: 36, weight: 5, pool: "av", variant: "gimbal" },
-	{ id: "reflector", lane: "ground", family: "light", w: 36, h: 40, weight: 5, pool: "av", variant: "reflector" },
-
-	{ id: "pothole", lane: "ground", family: "hazard", w: 40, h: 10, weight: 6, pool: "arg", variant: "pothole" },
-	{ id: "tile", lane: "ground", family: "hazard", w: 28, h: 8, weight: 5, pool: "arg", variant: "tile" },
-	{ id: "delivery", lane: "ground", family: "rider", w: 30, h: 40, weight: 5, pool: "arg", variant: "delivery" },
-	{ id: "moto", lane: "ground", family: "rider", w: 42, h: 28, weight: 5, pool: "arg", variant: "moto" },
-	{ id: "dog", lane: "ground", family: "creature", w: 28, h: 20, weight: 6, pool: "arg", variant: "dog" },
-	{ id: "pedestrian", lane: "ground", family: "creature", w: 18, h: 44, weight: 5, pool: "arg", variant: "ped" },
-	{ id: "reposera", lane: "ground", family: "seat", w: 40, h: 24, weight: 4, pool: "arg", variant: "reposera" },
-	{ id: "fan", lane: "ground", family: "gear", w: 28, h: 36, weight: 4, pool: "arg", variant: "fan" },
-	{ id: "bag", lane: "ground", family: "small", w: 22, h: 18, weight: 5, pool: "arg", variant: "plastic" },
-	{ id: "bigtermo", lane: "ground", family: "small", w: 20, h: 36, weight: 4, pool: "arg", variant: "bigtermo" },
-	{ id: "argcone", lane: "ground", family: "hazard", w: 22, h: 30, weight: 5, pool: "arg", variant: "argcone" },
-
-	{ id: "drone", lane: "air", family: "air", w: 40, h: 20, weight: 10, pool: "air", variant: "drone" },
-	{ id: "crazydrone", lane: "air", family: "air", w: 38, h: 22, weight: 5, pool: "air", variant: "crazy" },
-	{ id: "boom", lane: "air", family: "air", w: 58, h: 14, weight: 9, pool: "air", variant: "boom" },
-	{ id: "hangcable", lane: "air", family: "air", w: 10, h: 48, weight: 7, pool: "air", variant: "hang" },
-	{ id: "airreflector", lane: "air", family: "air", w: 40, h: 28, weight: 6, pool: "air", variant: "airref" },
-	{ id: "diffuser", lane: "air", family: "air", w: 44, h: 30, weight: 5, pool: "air", variant: "diff" },
-	{ id: "lightarm", lane: "air", family: "air", w: 52, h: 16, weight: 6, pool: "air", variant: "arm" },
+	// Piso — de más bajo a más alto
+	{ id: "xlr", lane: "ground", family: "cable", w: 21, h: 11, weight: 10, pool: "av", variant: "xlr" }, // 0.22× dino
+	{ id: "gaffer_roll", lane: "ground", family: "small", w: 19, h: 12, weight: 7, pool: "av", variant: "gaffer" }, // 0.24×
+	{ id: "clapper", lane: "ground", family: "small", w: 25, h: 21, weight: 8, pool: "av", variant: "clapper" }, // 0.43×
+	{ id: "flight", lane: "ground", family: "box", w: 34, h: 25, weight: 9, pool: "av", variant: "flight" }, // 0.51×
+	{ id: "tripod", lane: "ground", family: "stand", w: 34, h: 43, weight: 10, pool: "av", variant: "tripod" }, // 0.87×
+	// Aéreos — se pasan agachándose (o saltando por encima)
+	{ id: "drone", lane: "air", family: "air", w: 33, h: 17, weight: 10, pool: "air", variant: "drone" }, // 0.35×
+	{ id: "boom", lane: "air", family: "air", w: 43, h: 15, weight: 9, pool: "air", variant: "boom" }, // 0.30×
 ];
 
 export type PickupEffect =
@@ -275,7 +306,11 @@ export type PickupEffect =
 	| { type: "multiplier"; amount: number; duration: number }
 	| { type: "invuln"; duration: number }
 	| { type: "shield" }
-	| { type: "ease"; amount: number; duration: number };
+	| { type: "ease"; amount: number; duration: number }
+	/** Cámara lenta: el mundo corre al 45% durante `duration` segundos */
+	| { type: "slowmo"; duration: number }
+	/** Rueda los filtros de FILTER_CYCLE cada `every` segundos */
+	| { type: "filters"; duration: number; every: number };
 
 export interface PickupDef {
 	id: string;
@@ -287,14 +322,27 @@ export interface PickupDef {
 	variant: string;
 }
 
+/**
+ * `weight` es la probabilidad relativa dentro de la tirada de pickup: subir el
+ * número de uno lo hace más frecuente respecto de los demás. Cada cuánto sale
+ * *algún* pickup se controla con `GAME_CONFIG.pickupChance`.
+ * Igual que en los obstáculos, `h` manda y el ancho sale del aspect del PNG.
+ */
 export const PICKUP_TYPES: PickupDef[] = [
-	{ id: "mate", label: "MATEcito Y SEGUIMOS", w: 18, h: 22, weight: 14, effect: { type: "score", frames: 90 }, variant: "mate" },
-	{ id: "cafe", label: "CAFÉ DE PRODUCCIÓN", w: 16, h: 20, weight: 12, effect: { type: "multiplier", amount: 2, duration: 4 }, variant: "cafe" },
-	{ id: "battery", label: "BATERÍA AL 100%", w: 16, h: 24, weight: 8, effect: { type: "invuln", duration: 3.2 }, variant: "battery" },
-	{ id: "sdcard", label: "MATERIAL GUARDADO", w: 14, h: 18, weight: 12, effect: { type: "score", frames: 150 }, variant: "sd" },
-	{ id: "gaffer", label: "TODO SE ARREGLA CON GAFFER", w: 20, h: 16, weight: 9, effect: { type: "shield" }, variant: "gaffer" },
-	{ id: "budget", label: "PRESUPUESTO APROBADO", w: 28, h: 20, weight: 2, effect: { type: "ease", amount: 0.55, duration: 5 }, variant: "budget" },
+	{ id: "mate", label: "MATEcito Y SEGUIMOS  +3s", w: 17, h: 20, weight: 14, effect: { type: "score", frames: 90 }, variant: "mate" },
+	{ id: "cafe", label: "CAFÉ DE PRODUCCIÓN  x2", w: 16, h: 19, weight: 12, effect: { type: "multiplier", amount: 2, duration: 6 }, variant: "cafe" },
+	{ id: "battery", label: "BATERÍA AL 100%  INVENCIBLE", w: 20, h: 20, weight: 8, effect: { type: "invuln", duration: 3.2 }, variant: "battery" },
+	{ id: "slowmo", label: "CÁMARA LENTA  120 FPS", w: 18, h: 20, weight: 7, effect: { type: "slowmo", duration: 5 }, variant: "slowmo" },
+	{ id: "lut", label: "PROBANDO LUTS  EL COLORISTA SE FUE", w: 24, h: 8, weight: 6, effect: { type: "filters", duration: 9, every: 2 }, variant: "lut" },
 ];
+
+/** Filtros que rota el pickup `lut`, en orden */
+export const FILTER_CYCLE = [
+	{ id: "sepia", label: "SEPIA", css: "sepia(0.85) contrast(1.05)" },
+	{ id: "bw", label: "BLANCO Y NEGRO", css: "grayscale(1) contrast(1.15)" },
+	{ id: "teal", label: "TEAL & ORANGE", css: "saturate(1.9) hue-rotate(-18deg)" },
+	{ id: "negative", label: "NEGATIVO", css: "invert(1) hue-rotate(180deg)" },
+] as const;
 
 export type EventEffect =
 	| { type: "none" }
@@ -409,7 +457,7 @@ export const GAME_OVER_RARE = {
 	sub: "HABÍA QUE GRABARLO VERTICAL",
 } as const;
 
-export type DinoGear = "headset" | "camera" | "vest" | "glasses" | "megaphone" | "clapper" | "mate";
+export type DinoGear = "camera" | "vest" | "glasses" | "megaphone" | "clapper" | "mate";
 
 export interface DinoLevel {
 	from: number;
@@ -420,14 +468,13 @@ export interface DinoLevel {
 
 export const DINO_LEVELS: DinoLevel[] = [
 	{ from: 0, id: "base", gear: ["camera"] },
-	{ from: 500, id: "headset", gear: ["camera", "headset"] },
-	{ from: 1200, id: "vest", gear: ["camera", "headset", "vest"], unlockToast: "CHALECO DE PRODUCCIÓN" },
-	{ from: 2500, id: "mate", gear: ["camera", "headset", "vest", "mate"], unlockToast: "MATE EN MANO" },
-	{ from: 4000, id: "glasses", gear: ["camera", "headset", "vest", "mate", "glasses"], unlockToast: "LOOK DE DIRECCIÓN" },
+	{ from: 500, id: "vest", gear: ["camera", "vest"], unlockToast: "CHALECO DE PRODUCCIÓN" },
+	{ from: 1200, id: "mate", gear: ["camera", "vest", "mate"], unlockToast: "MATE EN MANO" },
+	{ from: 2500, id: "glasses", gear: ["camera", "vest", "mate", "glasses"], unlockToast: "LOOK DE DIRECCIÓN" },
 	{
-		from: 5500,
+		from: 4000,
 		id: "director",
-		gear: ["camera", "headset", "vest", "mate", "glasses", "megaphone"],
+		gear: ["camera", "vest", "mate", "glasses", "megaphone"],
 		unlockToast: "AURA DE DIRECTOR +9999",
 	},
 ];
