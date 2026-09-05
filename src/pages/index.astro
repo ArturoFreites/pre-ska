@@ -647,13 +647,12 @@ const structuredData = {
 	}
 
 	.date__pair > span + span {
-		/* Espacio muy apenas entre dígitos */
-		margin-left: 0.015em;
+		/* ~80% más cerca que el aire previo */
+		margin-left: -0.077em;
 	}
 
 	.date__pair > span + span.date__thin {
-		/* El 1 es más fino: un poco menos de aire para igualar visualmente */
-		margin-left: -0.02em;
+		margin-left: -0.132em;
 	}
 
 	.date .slash {
@@ -661,8 +660,8 @@ const structuredData = {
 		flex-shrink: 0;
 		width: 0.125em;
 		height: 1cap;
-		/* Más cerca del "1" (margen izquierdo ~1/8 del original) */
-		margin-inline: 0.019em 0.133em;
+		/* Acerca la barra al "1": otro ~50% menos aire */
+		margin-inline: -0.08em 0.133em;
 		background: currentColor;
 		transform: skewX(-18deg);
 		transform-origin: center bottom;
