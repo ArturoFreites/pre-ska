@@ -3,35 +3,127 @@ import DinoOnSet from "../components/easter-eggs/DinoOnSet.astro";
 
 const targetDate = "2026-09-21T00:00:00-03:00";
 const siteUrl = "https://ska.ar";
-const pageTitle = "ska.prd";
-const pageDescription = "hacemos que suceda. 21/09";
+const brandName = "SKA";
+const pageTitle = "SKA | Productora audiovisual";
+const pageDescription =
+	"SKA es una productora audiovisual. Hacemos que suceda. Seguinos en Instagram @ska.prd y @ska.raw. Lanzamiento 21/09.";
+const ogTitle = "ska.prd — hacemos que suceda";
+const ogDescription = "Productora audiovisual. Hacemos que suceda. 21/09.";
 const ogImage = `${siteUrl}/og-image.jpg`;
+const igPrd = "https://www.instagram.com/ska.prd/";
+const igRaw = "https://www.instagram.com/ska.raw/";
+
+const structuredData = {
+	"@context": "https://schema.org",
+	"@graph": [
+		{
+			"@type": "WebSite",
+			"@id": `${siteUrl}/#website`,
+			url: siteUrl,
+			name: brandName,
+			alternateName: ["ska.prd", "SKA Productora"],
+			description: pageDescription,
+			inLanguage: "es-AR",
+			publisher: { "@id": `${siteUrl}/#organization` },
+		},
+		{
+			"@type": "Organization",
+			"@id": `${siteUrl}/#organization`,
+			name: brandName,
+			alternateName: ["ska.prd", "SKA Productora audiovisual"],
+			url: siteUrl,
+			logo: {
+				"@type": "ImageObject",
+				url: `${siteUrl}/favicon.png`,
+				width: 512,
+				height: 512,
+			},
+			image: ogImage,
+			description:
+				"Productora audiovisual. Contenido, producción y postproducción. Hacemos que suceda.",
+			sameAs: [igPrd, igRaw],
+			areaServed: {
+				"@type": "Country",
+				name: "Argentina",
+			},
+		},
+		{
+			"@type": "WebPage",
+			"@id": `${siteUrl}/#webpage`,
+			url: siteUrl,
+			name: pageTitle,
+			description: pageDescription,
+			isPartOf: { "@id": `${siteUrl}/#website` },
+			about: { "@id": `${siteUrl}/#organization` },
+			primaryImageOfPage: {
+				"@type": "ImageObject",
+				url: ogImage,
+				width: 1200,
+				height: 630,
+			},
+			inLanguage: "es-AR",
+		},
+		{
+			"@type": "Event",
+			"@id": `${siteUrl}/#launch`,
+			name: "Lanzamiento SKA",
+			description: "Lanzamiento de SKA, productora audiovisual. Hacemos que suceda.",
+			startDate: "2026-09-21",
+			eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+			eventStatus: "https://schema.org/EventScheduled",
+			url: siteUrl,
+			image: ogImage,
+			organizer: { "@id": `${siteUrl}/#organization` },
+			location: {
+				"@type": "VirtualLocation",
+				url: siteUrl,
+			},
+		},
+	],
+};
 ---
 
-<html lang="es">
+<html lang="es-AR">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/png" href="/favicon-32.png" />
 		<link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="manifest" href="/site.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="description" content={`${pageTitle} — ${pageDescription}`} />
+		<meta name="theme-color" content="#7a0f12" />
+		<meta name="color-scheme" content="dark" />
+		<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+		<meta name="googlebot" content="index, follow" />
+		<meta name="author" content="SKA" />
+		<meta name="application-name" content="SKA" />
+		<meta name="description" content={pageDescription} />
+		<meta
+			name="keywords"
+			content="SKA, ska.prd, ska.raw, productora audiovisual, producción audiovisual, video, cine, contenido, Argentina"
+		/>
 		<title>{pageTitle}</title>
 		<link rel="canonical" href={siteUrl} />
+		<link rel="alternate" hreflang="es-AR" href={siteUrl} />
+		<link rel="alternate" hreflang="x-default" href={siteUrl} />
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content={siteUrl} />
-		<meta property="og:site_name" content={pageTitle} />
-		<meta property="og:title" content={pageTitle} />
-		<meta property="og:description" content={pageDescription} />
+		<meta property="og:site_name" content={brandName} />
+		<meta property="og:title" content={ogTitle} />
+		<meta property="og:description" content={ogDescription} />
 		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:alt" content="SKA — productora audiovisual. Hacemos que suceda." />
 		<meta property="og:image:width" content="1200" />
 		<meta property="og:image:height" content="630" />
+		<meta property="og:image:type" content="image/jpeg" />
 		<meta property="og:locale" content="es_AR" />
 		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:title" content={pageTitle} />
-		<meta name="twitter:description" content={pageDescription} />
+		<meta name="twitter:title" content={ogTitle} />
+		<meta name="twitter:description" content={ogDescription} />
 		<meta name="twitter:image" content={ogImage} />
+		<meta name="twitter:image:alt" content="SKA — productora audiovisual. Hacemos que suceda." />
+		<script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
@@ -40,6 +132,22 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 		/>
 	</head>
 	<body>
+		{/* Texto indexable siempre en el HTML (fuera del splash / visibility:hidden) */}
+		<section class="seo-copy" aria-label="Sobre SKA">
+			<h1>SKA — Productora audiovisual</h1>
+			<p>
+				SKA es una productora audiovisual. Creamos contenido, producción y postproducción.
+				Hacemos que suceda.
+			</p>
+			<p>Lanzamiento: 21 de septiembre de 2026.</p>
+			<p>
+				Instagram:
+				<a href={igPrd} rel="noopener noreferrer">@ska.prd</a>
+				{" · "}
+				<a href={igRaw} rel="noopener noreferrer">@ska.raw</a>
+			</p>
+		</section>
+
 		<div class="splash" id="splash" aria-hidden="true">
 			<span class="splash-logo logo" role="img" aria-label="SKA"></span>
 		</div>
@@ -51,20 +159,20 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 						type="button"
 						class="logo logo--trigger"
 						data-dino-trigger
-						aria-label="SKA"
+						aria-label="SKA, productora audiovisual"
 					></button>
 				</header>
 
-				<section class="launch" aria-label="Lanzamiento">
+				<section class="launch" aria-label="Lanzamiento SKA 21 de septiembre">
 					<a
 						class="handle"
-						href="https://instagram.com/ska.prd"
+						href={igPrd}
 						target="_blank"
-						rel="noopener noreferrer"
+						rel="noopener noreferrer me"
 					>
 						@ska.prd
 					</a>
-					<p class="date" aria-label="21/09">
+					<p class="date" aria-label="21 de septiembre">
 						<span aria-hidden="true">21</span><span class="slash" aria-hidden="true"></span><span aria-hidden="true">09</span>
 					</p>
 					<div class="countdown" data-target={targetDate} aria-live="polite">
@@ -218,6 +326,19 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 	a {
 		color: inherit;
 		text-decoration: none;
+	}
+
+	/* Contenido para crawlers / lectores de pantalla; no altera el layout visual */
+	.seo-copy {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
 	}
 </style>
 

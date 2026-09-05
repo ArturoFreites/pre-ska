@@ -16,6 +16,7 @@
     "og:generate": "node scripts/generate-og-image.mjs"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
     "astro": "^7.2.10"
   },
   "devDependencies": {
