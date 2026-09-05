@@ -89,7 +89,7 @@ const structuredData = {
 		<style is:inline>
 			html,
 			body {
-				background: #111111;
+				background: #000000;
 			}
 		</style>
 		<link rel="icon" type="image/png" href="/favicon-32.png" />
@@ -98,10 +98,12 @@ const structuredData = {
 		<link rel="manifest" href="/site.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="theme-color" content="#111111" />
+		<meta name="theme-color" content="#000000" />
+		<meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
 		<meta name="color-scheme" content="dark" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 		<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 		<meta name="googlebot" content="index, follow" />
 		<meta name="author" content="SKA" />
@@ -428,6 +430,8 @@ const structuredData = {
 	:root {
 		--ink: #ffffff;
 		--accent: #e95514;
+		--chrome: #000000;
+		--veil: rgba(0, 0, 0, 0.18);
 		/* Self-hosted Archivo Black para handle / slogan */
 		--font-black: "Archivo Black", sans-serif;
 		--font-arial: Arial, Helvetica, sans-serif;
@@ -444,13 +448,13 @@ const structuredData = {
 		min-height: 100%;
 		height: 100%;
 		overflow: hidden;
-		background: #111111;
+		background: var(--chrome);
 	}
 
 	body {
 		font-family: var(--font-arial);
 		color: var(--ink);
-		background: #111111;
+		background: var(--chrome);
 		/* Safari: antialiased adelgaza tipografía display en blanco */
 		-webkit-font-smoothing: auto;
 		text-rendering: optimizeLegibility;
@@ -483,7 +487,7 @@ const structuredData = {
 		z-index: 0;
 		pointer-events: none;
 		overflow: hidden;
-		background: #111111 url("/fondo.jpg") center / cover no-repeat;
+		background: var(--chrome) url("/fondo.jpg") center / cover no-repeat;
 	}
 
 	.bg-media__video {
@@ -516,7 +520,7 @@ const structuredData = {
 		inset: 0;
 		z-index: 1;
 		pointer-events: none;
-		background: rgba(0, 0, 0, 0.18);
+		background: var(--veil);
 	}
 
 	.splash::after,

@@ -8,14 +8,24 @@ const pageDescription = "Esta página no existe.";
 <html lang="es-AR">
 	<head>
 		<meta charset="utf-8" />
+		<style is:inline>
+			html,
+			body {
+				background: #000000;
+			}
+		</style>
 		<link rel="icon" type="image/png" href="/favicon-32.png" />
 		<link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<link rel="manifest" href="/site.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="theme-color" content="#111111" />
+		<meta name="theme-color" content="#000000" />
+		<meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
 		<meta name="color-scheme" content="dark" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 		<meta name="robots" content="noindex, nofollow" />
 		<meta name="author" content="SKA" />
 		<meta name="application-name" content="SKA" />
@@ -168,6 +178,8 @@ const pageDescription = "Esta página no existe.";
 
 	:root {
 		--ink: #ffffff;
+		--chrome: #000000;
+		--veil: rgba(0, 0, 0, 0.18);
 		--font-black: "Archivo Black", sans-serif;
 		--font-arial: Arial, Helvetica, sans-serif;
 		--font-date: "Arial Black", sans-serif;
@@ -180,13 +192,13 @@ const pageDescription = "Esta página no existe.";
 		min-height: 100%;
 		height: 100%;
 		overflow: hidden;
-		background: #111111;
+		background: var(--chrome);
 	}
 
 	body {
 		font-family: var(--font-arial);
 		color: var(--ink);
-		background: #111111;
+		background: var(--chrome);
 		-webkit-font-smoothing: auto;
 		text-rendering: optimizeLegibility;
 		overscroll-behavior: none;
@@ -205,7 +217,7 @@ const pageDescription = "Esta página no existe.";
 		z-index: 0;
 		pointer-events: none;
 		overflow: hidden;
-		background: #111111 url("/fondo.jpg") center / cover no-repeat;
+		background: var(--chrome) url("/fondo.jpg") center / cover no-repeat;
 	}
 
 	.bg-media__video {
@@ -236,7 +248,7 @@ const pageDescription = "Esta página no existe.";
 		inset: 0;
 		z-index: 1;
 		pointer-events: none;
-		background: rgba(0, 0, 0, 0.18);
+		background: var(--veil);
 	}
 
 	.stage::after {
