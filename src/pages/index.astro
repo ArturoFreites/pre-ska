@@ -4,7 +4,7 @@ import DinoOnSet from "../components/easter-eggs/DinoOnSet.astro";
 const targetDate = "2026-09-21T00:00:00-03:00";
 const siteUrl = "https://ska.ar";
 const pageTitle = "ska.prd";
-const pageDescription = "tus ideas, hechas realidad. 21/09";
+const pageDescription = "hacemos que suceda. 21/09";
 const ogImage = `${siteUrl}/og-image.jpg`;
 ---
 
@@ -46,8 +46,13 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 
 		<main class="stage is-waiting" id="home">
 			<div class="content">
-				<header class="intro">
-					<p class="tagline">tus ideas,<br />hechas realidad.</p>
+				<header class="brand">
+					<button
+						type="button"
+						class="logo logo--trigger"
+						data-dino-trigger
+						aria-label="SKA"
+					></button>
 				</header>
 
 				<section class="launch" aria-label="Lanzamiento">
@@ -85,13 +90,8 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 					</div>
 				</section>
 
-				<footer class="brand">
-					<button
-						type="button"
-						class="logo logo--trigger"
-						data-dino-trigger
-						aria-label="SKA"
-					></button>
+				<footer class="outro">
+					<p class="tagline">hacemos que suceda<span class="accent" aria-hidden="true"></span></p>
 					<button
 						type="button"
 						class="play-egg"
@@ -186,6 +186,7 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 
 	:root {
 		--ink: #ffffff;
+		--accent: #f07818;
 		/* Archivo Black: web font; Arial Black no está en Safari/macOS */
 		--font-black: "Archivo Black", "Arial Black", Arial, sans-serif;
 		--font-arial: Arial, Helvetica, sans-serif;
@@ -296,42 +297,36 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: space-around;
+		justify-content: space-between;
 		width: 100%;
 		max-width: 34rem;
 		height: 100%;
 		min-height: 100%;
-		/* Tagline ~12% desde arriba, logo ~8% desde abajo; cluster al centro */
+		/* Más padding en bordes → ~50% menos aire entre logo / fecha / slogan */
 		padding:
-			max(clamp(3.25rem, 9vh, 5.5rem), env(safe-area-inset-top, 0px))
+			max(clamp(5.5rem, 19vh, 10rem), env(safe-area-inset-top, 0px))
 			max(1.25rem, env(safe-area-inset-right, 0px))
-			max(clamp(2.5rem, 7vh, 4.25rem), env(safe-area-inset-bottom, 0px))
+			max(clamp(5rem, 17vh, 9rem), env(safe-area-inset-bottom, 0px))
 			max(1.25rem, env(safe-area-inset-left, 0px));
 		text-align: center;
 	}
 
-	.stage.is-ready .intro {
-		animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
-	}
-
-	.intro {
+	.brand {
 		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 	}
 
-	.tagline {
-		font-family: var(--font-black);
-		font-weight: 400;
-		font-size: clamp(1.7rem, 6.5vw, 2.25rem);
-		line-height: 0.88;
-		letter-spacing: -0.09em;
-		text-wrap: balance;
+	.stage.is-ready .brand {
+		animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
 	}
 
 	.launch {
 		display: flex;
+		flex: 0 0 auto;
 		flex-direction: column;
 		align-items: center;
-		flex-shrink: 0;
 		/* Cluster handle + fecha + countdown bien cerrado */
 		gap: 0.15rem;
 	}
@@ -358,10 +353,11 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 		display: inline-flex;
 		align-items: baseline;
 		justify-content: center;
-		font-family: var(--font-black);
+		font-family: "Arial Black", Arial, sans-serif;
 		font-weight: 400;
+		font-style: normal;
 		/* Escala al ancho útil del viewport para no desbordar en móvil */
-		font-size: clamp(4.75rem, 26vw, 11rem);
+		font-size: clamp(5.5rem, 30vw, 12.5rem);
 		/* line-height < 1 desalineaba la barra respecto al ink de los dígitos */
 		line-height: 1;
 		white-space: nowrap;
@@ -377,7 +373,8 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 		flex-shrink: 0;
 		width: 0.125em;
 		height: 1cap;
-		margin-inline: 0.147em 0.133em;
+		/* Más cerca del "1" (margen izquierdo ~1/8 del original) */
+		margin-inline: 0.019em 0.133em;
 		background: currentColor;
 		transform: skewX(-18deg);
 		transform-origin: center bottom;
@@ -423,7 +420,7 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 		letter-spacing: 0;
 	}
 
-	.brand {
+	.outro {
 		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
@@ -431,13 +428,34 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 		gap: 0.85rem;
 	}
 
-	.stage.is-ready .brand {
+	.stage.is-ready .outro {
 		animation: rise 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
+	}
+
+	.tagline {
+		display: inline-flex;
+		align-items: flex-end;
+		font-family: var(--font-black);
+		font-weight: 400;
+		font-size: clamp(1.35rem, 5.2vw, 1.85rem);
+		line-height: 1;
+		letter-spacing: -0.06em;
+		text-wrap: balance;
+	}
+
+	.tagline .accent {
+		display: inline-block;
+		width: 0.38em;
+		height: 0.38em;
+		margin-left: 0.12em;
+		margin-bottom: 0.08em;
+		flex-shrink: 0;
+		background: var(--accent);
 	}
 
 	.logo {
 		display: block;
-		width: clamp(5.5rem, 24vw, 7rem);
+		width: clamp(6.5rem, 28vw, 8.5rem);
 		aspect-ratio: 220 / 90;
 		background-color: #fff;
 		-webkit-mask-image: url("/logo.png");
@@ -573,21 +591,21 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 		.content {
 			max-width: 36rem;
 			padding-block:
-				max(clamp(3rem, 8vh, 5rem), env(safe-area-inset-top, 0px))
-				max(clamp(2.5rem, 6.5vh, 4rem), env(safe-area-inset-bottom, 0px));
+				max(clamp(5rem, 16vh, 9rem), env(safe-area-inset-top, 0px))
+				max(clamp(4.5rem, 14vh, 8rem), env(safe-area-inset-bottom, 0px));
 		}
 
 		.date {
-			font-size: 11rem;
+			font-size: 12.5rem;
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
 		.splash,
 		.splash-logo,
-		.stage.is-ready .intro,
+		.stage.is-ready .brand,
 		.stage.is-ready .launch,
-		.stage.is-ready .brand {
+		.stage.is-ready .outro {
 			animation: none;
 			transition: none;
 		}
