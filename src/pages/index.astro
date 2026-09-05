@@ -163,6 +163,23 @@ const structuredData = {
 			</p>
 		</section>
 
+		<div class="bg-media" aria-hidden="true">
+			<video
+				id="bg-video"
+				class="bg-media__video"
+				autoplay
+				muted
+				loop
+				playsinline
+				preload="metadata"
+				poster="/fondo.jpg"
+				data-src-mobile="/fondo-mobile.mp4"
+				data-src-desktop="/fondo-desktop.mp4"
+				data-poster-mobile="/fondo.jpg"
+				data-poster-desktop="/fondo-desktop.jpg"
+			></video>
+		</div>
+
 		<div class="splash" id="splash" aria-hidden="true">
 			<span class="splash-logo logo" role="img" aria-label="SKA"></span>
 		</div>
@@ -237,7 +254,48 @@ const structuredData = {
 
 			const splash = document.getElementById("splash");
 			const home = document.getElementById("home");
+			const bgVideo = document.getElementById("bg-video") as HTMLVideoElement | null;
+			const bgMedia = document.querySelector<HTMLElement>(".bg-media");
 			const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+			const desktopBg = window.matchMedia("(min-width: 768px)");
+
+			const syncBgVideo = () => {
+				if (!bgVideo) return;
+
+				const desktop = desktopBg.matches;
+				const nextSrc = desktop
+					? (bgVideo.dataset.srcDesktop ?? "/fondo-desktop.mp4")
+					: (bgVideo.dataset.srcMobile ?? "/fondo-mobile.mp4");
+				const nextPoster = desktop
+					? (bgVideo.dataset.posterDesktop ?? "/fondo-desktop.jpg")
+					: (bgVideo.dataset.posterMobile ?? "/fondo.jpg");
+
+				if (bgMedia) {
+					bgMedia.style.backgroundImage = `url("${nextPoster}")`;
+				}
+				bgVideo.poster = nextPoster;
+
+				if (reduceMotion) {
+					bgVideo.pause();
+					bgVideo.removeAttribute("autoplay");
+					bgVideo.removeAttribute("src");
+					bgVideo.load();
+					return;
+				}
+
+				if (bgVideo.dataset.activeSrc !== nextSrc) {
+					bgVideo.dataset.activeSrc = nextSrc;
+					bgVideo.src = nextSrc;
+					bgVideo.load();
+				}
+
+				void bgVideo.play().catch(() => {
+					/* Autoplay bloqueado: queda el poster */
+				});
+			};
+
+			syncBgVideo();
+			desktopBg.addEventListener("change", syncBgVideo);
 
 			const revealHome = () => {
 				home?.classList.remove("is-waiting");
@@ -411,6 +469,25 @@ const structuredData = {
 </style>
 
 <style>
+	.bg-media {
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		overflow: hidden;
+		background: #2a2a2a url("/fondo.jpg") center / cover no-repeat;
+		filter: grayscale(1) brightness(0.38);
+	}
+
+	.bg-media__video {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center;
+	}
+
 	.splash {
 		position: fixed;
 		inset: 0;
@@ -421,19 +498,8 @@ const structuredData = {
 		display: grid;
 		place-items: center;
 		overflow: hidden;
-		background: #2a2a2a;
+		background: transparent;
 		transition: opacity 0.75s ease;
-	}
-
-	.splash::before,
-	.stage::before {
-		content: "";
-		position: absolute;
-		inset: 0;
-		z-index: 0;
-		pointer-events: none;
-		background: url("/fondo.jpg") center / cover no-repeat;
-		filter: grayscale(1) brightness(0.38);
 	}
 
 	.splash::after {
@@ -472,7 +538,7 @@ const structuredData = {
 		height: 100%;
 		height: 100dvh;
 		overflow: hidden;
-		background: #2a2a2a;
+		background: transparent;
 	}
 
 	.stage::after {
@@ -786,9 +852,7 @@ const structuredData = {
 	}
 
 	@media (min-width: 768px) {
-		/* Fondo ya rotado 90° a la derecha (1024×576) */
-		.splash::before,
-		.stage::before {
+		.bg-media {
 			background-image: url("/fondo-desktop.jpg");
 		}
 
@@ -839,6 +903,10 @@ const structuredData = {
 	}
 
 	@media (prefers-reduced-motion: reduce) {
+		.bg-media__video {
+			display: none;
+		}
+
 		.splash,
 		.splash-logo,
 		.stage.is-ready .brand,
