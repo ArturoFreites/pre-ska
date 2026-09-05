@@ -210,7 +210,7 @@ const structuredData = {
 					<div class="countdown" data-target={targetDate} aria-live="polite">
 						<div class="unit">
 							<span class="value" data-unit="days">00</span>
-							<span class="label">dias</span>
+							<span class="label">días</span>
 						</div>
 						<span class="sep" aria-hidden="true">:</span>
 						<div class="unit">
@@ -632,7 +632,8 @@ const structuredData = {
 	}
 
 	.date > span:not(.slash) {
-		letter-spacing: -0.12em;
+		/* Tracking cerrado pero sin fusionar tinta (0/9 apenas se rozan) */
+		letter-spacing: -0.085em;
 	}
 
 	.date .slash {
