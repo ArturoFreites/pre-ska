@@ -793,14 +793,48 @@ const structuredData = {
 		}
 
 		.content {
-			max-width: 36rem;
+			max-width: 40rem;
+			/* Menos padding → más aire entre logo / fecha / slogan */
 			padding-block:
-				max(clamp(5rem, 16vh, 9rem), env(safe-area-inset-top, 0px))
-				max(clamp(4.5rem, 14vh, 8rem), env(safe-area-inset-bottom, 0px));
+				max(clamp(3.5rem, 10vh, 6rem), env(safe-area-inset-top, 0px))
+				max(clamp(3rem, 9vh, 5.5rem), env(safe-area-inset-bottom, 0px));
+		}
+
+		.logo {
+			width: 6.75rem;
+		}
+
+		.launch {
+			gap: 0.55rem;
+		}
+
+		.handle {
+			font-size: 1.85rem;
 		}
 
 		.date {
-			font-size: 12.5rem;
+			font-size: 9.75rem;
+		}
+
+		.countdown {
+			margin-top: 0.85rem;
+		}
+
+		.value,
+		.sep {
+			font-size: 1.85rem;
+		}
+
+		.label {
+			font-size: 0.72rem;
+		}
+
+		.outro {
+			gap: 1.15rem;
+		}
+
+		.tagline {
+			font-size: 2.15rem;
 		}
 	}
 
