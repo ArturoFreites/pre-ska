@@ -124,11 +124,12 @@ const structuredData = {
 		<meta name="twitter:image" content={ogImage} />
 		<meta name="twitter:image:alt" content="SKA — productora audiovisual. Hacemos que suceda." />
 		<script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap"
-			rel="stylesheet"
+			rel="preload"
+			href="/fonts/archivo-black-latin.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin
 		/>
 		<link
 			rel="preload"
@@ -294,6 +295,25 @@ const structuredData = {
 </html>
 
 <style is:global>
+	/* Arial Black no existe en Safari/iOS — Archivo Black self-hosted como sustituto */
+	@font-face {
+		font-family: "Archivo Black";
+		font-style: normal;
+		font-weight: 400;
+		font-display: block;
+		src: url("/fonts/archivo-black-latin-ext.woff2") format("woff2");
+		unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+	}
+
+	@font-face {
+		font-family: "Archivo Black";
+		font-style: normal;
+		font-weight: 400;
+		font-display: block;
+		src: url("/fonts/archivo-black-latin.woff2") format("woff2");
+		unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+	}
+
 	/* Nombre distinto al sistema/Adobe para forzar el archivo self-hosted (mismo corte ExtraBold) */
 	@font-face {
 		font-family: "Montserrat ExtraBold";
@@ -323,9 +343,9 @@ const structuredData = {
 
 	:root {
 		--ink: #ffffff;
-		--accent: #f07818;
-		/* Archivo Black: web font; Arial Black no está en Safari/macOS */
-		--font-black: "Archivo Black", "Arial Black", Arial, sans-serif;
+		--accent: #e95514;
+		/* Self-hosted Archivo Black (Arial Black no existe en Safari/iOS) */
+		--font-black: "Archivo Black", sans-serif;
 		--font-arial: Arial, Helvetica, sans-serif;
 		/* Self-hosted — mismo nombre que en Photoshop */
 		--font-counter: "Montserrat ExtraBold", sans-serif;
@@ -380,16 +400,26 @@ const structuredData = {
 		display: grid;
 		place-items: center;
 		overflow: hidden;
-		background:
-			url("/fondo.jpg") center / cover no-repeat,
-			#7a0f12;
+		background: #2a2a2a;
 		transition: opacity 0.75s ease;
+	}
+
+	.splash::before,
+	.stage::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		background: url("/fondo.jpg") center / cover no-repeat;
+		filter: grayscale(1) brightness(0.38);
 	}
 
 	.splash::after {
 		content: "";
 		position: absolute;
 		inset: 0;
+		z-index: 1;
 		pointer-events: none;
 		opacity: 0.22;
 		mix-blend-mode: overlay;
@@ -421,9 +451,7 @@ const structuredData = {
 		height: 100%;
 		height: 100dvh;
 		overflow: hidden;
-		background:
-			url("/fondo.jpg") center / cover no-repeat,
-			#7a0f12;
+		background: #2a2a2a;
 	}
 
 	.stage::after {
@@ -504,9 +532,11 @@ const structuredData = {
 		display: inline-flex;
 		align-items: baseline;
 		justify-content: center;
-		font-family: "Arial Black", Arial, sans-serif;
+		/* Forzado self-hosted: Arial Black no se puede instalar en Safari/iOS */
+		font-family: var(--font-black);
 		font-weight: 400;
 		font-style: normal;
+		font-synthesis: none;
 		/* Escala al ancho útil del viewport para no desbordar en móvil */
 		font-size: clamp(5.5rem, 30vw, 12.5rem);
 		/* line-height < 1 desalineaba la barra respecto al ink de los dígitos */
@@ -737,16 +767,9 @@ const structuredData = {
 
 	@media (min-width: 768px) {
 		/* Fondo ya rotado 90° a la derecha (1024×576) */
-		.stage {
-			background:
-				url("/fondo-desktop.jpg") center / cover no-repeat,
-				#7a0f12;
-		}
-
-		.splash {
-			background:
-				url("/fondo-desktop.jpg") center / cover no-repeat,
-				#7a0f12;
+		.splash::before,
+		.stage::before {
+			background-image: url("/fondo-desktop.jpg");
 		}
 
 		.content {
