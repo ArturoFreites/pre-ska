@@ -92,8 +92,10 @@ const structuredData = {
 		<link rel="manifest" href="/site.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="theme-color" content="#7a0f12" />
+		<meta name="theme-color" content="#111111" />
 		<meta name="color-scheme" content="dark" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 		<meta name="googlebot" content="index, follow" />
 		<meta name="author" content="SKA" />
@@ -147,7 +149,7 @@ const structuredData = {
 		/>
 	</head>
 	<body>
-		{/* Texto indexable siempre en el HTML (fuera del splash / visibility:hidden) */}
+		{/* Texto indexable siempre en el HTML (visually hidden) */}
 		<section class="seo-copy" aria-label="Sobre SKA">
 			<h1>SKA — Productora audiovisual</h1>
 			<p>
@@ -180,11 +182,7 @@ const structuredData = {
 			></video>
 		</div>
 
-		<div class="splash" id="splash" aria-hidden="true">
-			<span class="splash-logo logo" role="img" aria-label="SKA"></span>
-		</div>
-
-		<main class="stage is-waiting" id="home">
+		<main class="stage is-ready" id="home">
 			<div class="content">
 				<header class="brand">
 					<button
@@ -252,8 +250,6 @@ const structuredData = {
 		<script>
 			import { mountDinoGame, bindDinoTriggers } from "../scripts/dino-game";
 
-			const splash = document.getElementById("splash");
-			const home = document.getElementById("home");
 			const bgVideo = document.getElementById("bg-video") as HTMLVideoElement | null;
 			const bgMedia = document.querySelector<HTMLElement>(".bg-media");
 			const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -296,25 +292,6 @@ const structuredData = {
 
 			syncBgVideo();
 			desktopBg.addEventListener("change", syncBgVideo);
-
-			const revealHome = () => {
-				home?.classList.remove("is-waiting");
-				home?.classList.add("is-ready");
-				splash?.classList.add("is-done");
-				splash?.addEventListener(
-					"transitionend",
-					() => splash.remove(),
-					{ once: true },
-				);
-				if (reduceMotion) splash?.remove();
-			};
-
-			if (reduceMotion) {
-				revealHome();
-			} else {
-				// appear ~1s + pulse ~2.2s → then fade
-				window.setTimeout(revealHome, 3400);
-			}
 
 			const root = document.querySelector<HTMLElement>(".countdown");
 			if (root) {
@@ -437,12 +414,13 @@ const structuredData = {
 		min-height: 100%;
 		height: 100%;
 		overflow: hidden;
+		background: #111111;
 	}
 
 	body {
 		font-family: var(--font-arial);
 		color: var(--ink);
-		background: #7a0f12;
+		background: #111111;
 		/* Safari: antialiased adelgaza tipografía display en blanco */
 		-webkit-font-smoothing: auto;
 		text-rendering: optimizeLegibility;
@@ -475,7 +453,7 @@ const structuredData = {
 		z-index: 0;
 		pointer-events: none;
 		overflow: hidden;
-		background: #2a2a2a url("/fondo.jpg") center / cover no-repeat;
+		background: #111111 url("/fondo.jpg") center / cover no-repeat;
 	}
 
 	.bg-media__video {
@@ -485,34 +463,6 @@ const structuredData = {
 		height: 100%;
 		object-fit: cover;
 		object-position: center;
-	}
-
-	.splash {
-		position: fixed;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		height: 100dvh;
-		z-index: 40;
-		display: grid;
-		place-items: center;
-		overflow: hidden;
-		background: transparent;
-		transition: opacity 0.75s ease;
-	}
-
-	.splash.is-done {
-		opacity: 0;
-		pointer-events: none;
-	}
-
-	.splash-logo {
-		position: relative;
-		z-index: 1;
-		width: min(92vw, 50rem);
-		opacity: 0;
-		transform: scale(0.88);
-		animation: splash-sequence 3.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 	}
 
 	.stage {
@@ -526,10 +476,6 @@ const structuredData = {
 		height: 100dvh;
 		overflow: hidden;
 		background: transparent;
-	}
-
-	.stage.is-waiting .content {
-		visibility: hidden;
 	}
 
 	.content {
@@ -785,37 +731,6 @@ const structuredData = {
 		border-color: transparent transparent transparent #fff;
 	}
 
-	@keyframes splash-sequence {
-		0% {
-			opacity: 0;
-			transform: scale(0.88);
-		}
-		18% {
-			opacity: 1;
-			transform: scale(1);
-		}
-		38% {
-			opacity: 0.7;
-			transform: scale(1.05);
-		}
-		55% {
-			opacity: 1;
-			transform: scale(1);
-		}
-		72% {
-			opacity: 0.7;
-			transform: scale(1.05);
-		}
-		88% {
-			opacity: 1;
-			transform: scale(1);
-		}
-		100% {
-			opacity: 1;
-			transform: scale(1);
-		}
-	}
-
 	@keyframes rise {
 		from {
 			opacity: 0;
@@ -883,18 +798,11 @@ const structuredData = {
 			display: none;
 		}
 
-		.splash,
-		.splash-logo,
 		.stage.is-ready .brand,
 		.stage.is-ready .launch,
 		.stage.is-ready .outro {
 			animation: none;
 			transition: none;
-		}
-
-		.splash-logo {
-			opacity: 1;
-			transform: none;
 		}
 	}
 </style>
