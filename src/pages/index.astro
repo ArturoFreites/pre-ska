@@ -126,6 +126,13 @@ const structuredData = {
 		<script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 		<link
 			rel="preload"
+			href="/fonts/arial-black-regular.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin
+		/>
+		<link
+			rel="preload"
 			href="/fonts/archivo-black-latin.woff2"
 			as="font"
 			type="font/woff2"
@@ -295,7 +302,19 @@ const structuredData = {
 </html>
 
 <style is:global>
-	/* Arial Black no existe en Safari/iOS — Archivo Black self-hosted como sustituto */
+	/* Arial Black Regular self-hosted — fuerza el mismo corte en Safari/iOS */
+	@font-face {
+		font-family: "Arial Black";
+		font-style: normal;
+		font-weight: 400;
+		font-display: block;
+		src:
+			url("/fonts/arial-black-regular.woff2") format("woff2"),
+			local("Arial Black"),
+			local("Arial-Black");
+	}
+
+	/* Archivo Black self-hosted para handle / slogan */
 	@font-face {
 		font-family: "Archivo Black";
 		font-style: normal;
@@ -344,9 +363,11 @@ const structuredData = {
 	:root {
 		--ink: #ffffff;
 		--accent: #e95514;
-		/* Self-hosted Archivo Black (Arial Black no existe en Safari/iOS) */
+		/* Self-hosted Archivo Black para handle / slogan */
 		--font-black: "Archivo Black", sans-serif;
 		--font-arial: Arial, Helvetica, sans-serif;
+		/* Self-hosted Arial Black Regular para la fecha */
+		--font-date: "Arial Black", sans-serif;
 		/* Self-hosted — mismo nombre que en Photoshop */
 		--font-counter: "Montserrat ExtraBold", sans-serif;
 	}
@@ -532,9 +553,8 @@ const structuredData = {
 		display: inline-flex;
 		align-items: baseline;
 		justify-content: center;
-		/* Forzado self-hosted: Arial Black no se puede instalar en Safari/iOS */
-		font-family: var(--font-black);
-		font-weight: 400;
+		font-family: var(--font-date);
+		font-weight: 400; /* Arial Black Regular */
 		font-style: normal;
 		font-synthesis: none;
 		/* Escala al ancho útil del viewport para no desbordar en móvil */
