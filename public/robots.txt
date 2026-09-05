@@ -3,6 +3,7 @@ Allow: /
 
 # Página interna de desarrollo / assets del juego
 Disallow: /dino-check
+Disallow: /chupetona
 Disallow: /game/
 
 Sitemap: https://ska.ar/sitemap-index.xml
