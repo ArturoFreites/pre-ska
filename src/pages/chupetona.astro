@@ -369,14 +369,6 @@ const igRaw = "https://www.instagram.com/ska.raw/";
 		background: #111111 url("/fondo.jpg") center / cover no-repeat;
 	}
 
-	.bg-media::after {
-		content: "";
-		position: absolute;
-		inset: 0;
-		z-index: 1;
-		background: rgba(0, 0, 0, 0.18);
-	}
-
 	.bg-media__video {
 		position: absolute;
 		inset: 0;
@@ -400,6 +392,16 @@ const igRaw = "https://www.instagram.com/ska.raw/";
 		transition: opacity 0.75s ease;
 	}
 
+	.splash::before,
+	.stage::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+		background: rgba(0, 0, 0, 0.18);
+	}
+
 	.splash::after,
 	.stage::after {
 		content: "";
@@ -420,7 +422,7 @@ const igRaw = "https://www.instagram.com/ska.raw/";
 
 	.splash-logo {
 		position: relative;
-		z-index: 1;
+		z-index: 2;
 		width: min(92vw, 50rem);
 		opacity: 0;
 		transform: scale(0.88);
