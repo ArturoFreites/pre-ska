@@ -138,12 +138,15 @@ export const DINO_BASE_SPRITE = "dino-run-1.png";
 
 /**
  * Altura del borde inferior de los obstáculos aéreos, como fracción de la
- * altura del dino de pie. Debe quedar entre 0.52 (alto agachado) y 1.0 para
- * que agacharse sirva y el obstáculo no sea invisible.
+ * altura del dino de pie.
+ *
+ * El hitbox de pie (tras inset) solo llega a ~0.55·standH desde el suelo, así
+ * que el lift tiene que quedar claramente por debajo de eso. El duck visual
+ * cubre ~0.30·standH: estos valores pegan de pie y pasan agachado.
  */
 export const AIR_LIFT: Record<string, number> = {
-	drone: 0.8,
-	boom: 0.7,
+	drone: 0.42,
+	boom: 0.36,
 };
 
 export function getSourceSize(name: string): { w: number; h: number } | null {

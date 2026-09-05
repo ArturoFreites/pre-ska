@@ -636,7 +636,7 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 
 		// AIR_LIFT is a fraction of the dino's standing height: the obstacle's
 		// bottom edge lands between duck-height and stand-height so ducking works.
-		const lift = AIR_LIFT[def.id] ?? 0.74;
+		const lift = AIR_LIFT[def.id] ?? 0.38;
 		const y = air ? groundY - standH * lift : groundY;
 		obstacles.push({ def, x: W + 24, y, w, h, air });
 	}
@@ -1095,6 +1095,19 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		drawGround(stage);
 	}
 
+	/** Aplica el filtro de stage a capas de fondo (como el footage de la web). */
+	function withParallaxFilter(stage: StageDef, draw: () => void) {
+		const filter = stage.parallaxFilter;
+		if (!filter || reduceMotion) {
+			draw();
+			return;
+		}
+		ctx.save();
+		ctx.filter = filter;
+		draw();
+		ctx.restore();
+	}
+
 	function drawGrain(stage: StageDef) {
 		if (reduceMotion || stage.grain <= 0 || grainPoints.length === 0) return;
 		const drift = (performance.now() / 60) % H;
@@ -1195,14 +1208,25 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	function drawParallax(stage: StageDef) {
 		const layers = parallaxForStage(stage);
 
-		if (layers.sky) {
-			const h = Math.min(H * 0.3, 170 * scale);
-			drawLayer(layers.sky, h, groundY - H * 0.28, scrollFar, 0.16);
-		}
-		if (layers.horizon) {
-			const h = Math.min(H * 0.2, 120 * scale);
-			drawLayer(layers.horizon, h, groundY + 1, scrollNear * 0.3, stage.horizonAlpha ?? 0.36);
-		}
+		withParallaxFilter(stage, () => {
+			if (layers.sky) {
+				const h = Math.min(H * 0.3, 170 * scale);
+				drawLayer(layers.sky, h, groundY - H * 0.28, scrollFar, 0.16);
+			}
+			if (layers.horizon) {
+				const h = Math.min(H * 0.2, 120 * scale);
+				drawLayer(layers.horizon, h, groundY + 1, scrollNear * 0.3, stage.horizonAlpha ?? 0.36);
+			}
+		});
+
+		// Velo negro/naranja tipo home: el footage queda bajo la marca SKA
+		ctx.fillStyle = stage.tint;
+		ctx.globalAlpha = Math.min(0.22, stage.tintAlpha * 0.55);
+		ctx.fillRect(0, 0, W, groundY);
+		ctx.fillStyle = "rgba(0,0,0,0.28)";
+		ctx.globalAlpha = 1;
+		ctx.fillRect(0, 0, W, groundY);
+		ctx.globalAlpha = 1;
 	}
 
 	/**
@@ -1228,9 +1252,11 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		const dw = dh * aspect;
 		const ox = 24 * scale;
 		const float = reduceMotion ? 0 : Math.sin(performance.now() / 2600) * 4 * scale;
-		ctx.globalAlpha = stage.decorAlpha ?? 0.26;
-		drawGameSprite(ctx, name, ox, bandBottom - dh + float, dw, dh, DECOR_MODE[stage.decor] ?? "production");
-		ctx.globalAlpha = 1;
+		withParallaxFilter(stage, () => {
+			ctx.globalAlpha = stage.decorAlpha ?? 0.26;
+			drawGameSprite(ctx, name, ox, bandBottom - dh + float, dw, dh, DECOR_MODE[stage.decor] ?? "production");
+			ctx.globalAlpha = 1;
+		});
 	}
 
 	/** Soft contact shadow so sprites read as standing on the floor. */

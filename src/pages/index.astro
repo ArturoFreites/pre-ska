@@ -215,7 +215,7 @@ const structuredData = {
 						@ska.prd
 					</a>
 					<p class="date" aria-label="21 de septiembre">
-						<span aria-hidden="true">21</span><span class="slash" aria-hidden="true"></span><span aria-hidden="true">09</span>
+						<span class="date__pair" aria-hidden="true"><span>2</span><span class="date__thin">1</span></span><span class="slash" aria-hidden="true"></span><span class="date__pair" aria-hidden="true"><span>0</span><span>9</span></span>
 					</p>
 					<div class="countdown" data-target={targetDate} aria-live="polite">
 						<div class="unit">
@@ -641,9 +641,19 @@ const structuredData = {
 		max-width: 100%;
 	}
 
-	.date > span:not(.slash) {
-		/* Tracking cerrado pero sin fusionar tinta (0/9 apenas se rozan) */
-		letter-spacing: -0.085em;
+	.date__pair {
+		display: inline-flex;
+		align-items: baseline;
+	}
+
+	.date__pair > span + span {
+		/* Espacio muy apenas entre dígitos */
+		margin-left: 0.015em;
+	}
+
+	.date__pair > span + span.date__thin {
+		/* El 1 es más fino: un poco menos de aire para igualar visualmente */
+		margin-left: -0.02em;
 	}
 
 	.date .slash {
