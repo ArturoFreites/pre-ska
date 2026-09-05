@@ -86,6 +86,15 @@ const structuredData = {
 <html lang="es-AR">
 	<head>
 		<meta charset="utf-8" />
+		<style is:inline>
+			html,
+			body {
+				background: #111111;
+			}
+			.bg-media {
+				filter: grayscale(1);
+			}
+		</style>
 		<link rel="icon" type="image/png" href="/favicon-32.png" />
 		<link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -182,7 +191,11 @@ const structuredData = {
 			></video>
 		</div>
 
-		<main class="stage is-ready" id="home">
+		<div class="splash" id="splash" aria-hidden="true">
+			<span class="splash-logo logo" role="img" aria-label="SKA"></span>
+		</div>
+
+		<main class="stage is-waiting" id="home">
 			<div class="content">
 				<header class="brand">
 					<button
@@ -250,6 +263,8 @@ const structuredData = {
 		<script>
 			import { mountDinoGame, bindDinoTriggers } from "../scripts/dino-game";
 
+			const splash = document.getElementById("splash");
+			const home = document.getElementById("home");
 			const bgVideo = document.getElementById("bg-video") as HTMLVideoElement | null;
 			const bgMedia = document.querySelector<HTMLElement>(".bg-media");
 			const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -292,6 +307,24 @@ const structuredData = {
 
 			syncBgVideo();
 			desktopBg.addEventListener("change", syncBgVideo);
+
+			const revealHome = () => {
+				home?.classList.remove("is-waiting");
+				home?.classList.add("is-ready");
+				splash?.classList.add("is-done");
+				splash?.addEventListener(
+					"transitionend",
+					() => splash.remove(),
+					{ once: true },
+				);
+				if (reduceMotion) splash?.remove();
+			};
+
+			if (reduceMotion) {
+				revealHome();
+			} else {
+				window.setTimeout(revealHome, 3400);
+			}
 
 			const root = document.querySelector<HTMLElement>(".countdown");
 			if (root) {
@@ -454,6 +487,7 @@ const structuredData = {
 		pointer-events: none;
 		overflow: hidden;
 		background: #111111 url("/fondo.jpg") center / cover no-repeat;
+		filter: grayscale(1);
 	}
 
 	.bg-media__video {
@@ -463,6 +497,57 @@ const structuredData = {
 		height: 100%;
 		object-fit: cover;
 		object-position: center;
+	}
+
+	.splash {
+		position: fixed;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		height: 100dvh;
+		z-index: 40;
+		display: grid;
+		place-items: center;
+		overflow: hidden;
+		background: transparent;
+		transition: opacity 0.75s ease;
+	}
+
+	.splash::before,
+	.stage::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+		background: rgba(0, 0, 0, 0.18);
+	}
+
+	.splash::after,
+	.stage::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+		opacity: 0.22;
+		mix-blend-mode: overlay;
+		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+		background-size: 180px 180px;
+	}
+
+	.splash.is-done {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.splash-logo {
+		position: relative;
+		z-index: 2;
+		width: min(92vw, 50rem);
+		opacity: 0;
+		transform: scale(0.88);
+		animation: splash-sequence 3.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 	}
 
 	.stage {
@@ -476,6 +561,10 @@ const structuredData = {
 		height: 100dvh;
 		overflow: hidden;
 		background: transparent;
+	}
+
+	.stage.is-waiting .content {
+		visibility: hidden;
 	}
 
 	.content {
@@ -731,6 +820,37 @@ const structuredData = {
 		border-color: transparent transparent transparent #fff;
 	}
 
+	@keyframes splash-sequence {
+		0% {
+			opacity: 0;
+			transform: scale(0.88);
+		}
+		18% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		38% {
+			opacity: 0.7;
+			transform: scale(1.05);
+		}
+		55% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		72% {
+			opacity: 0.7;
+			transform: scale(1.05);
+		}
+		88% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
 	@keyframes rise {
 		from {
 			opacity: 0;
@@ -798,11 +918,18 @@ const structuredData = {
 			display: none;
 		}
 
+		.splash,
+		.splash-logo,
 		.stage.is-ready .brand,
 		.stage.is-ready .launch,
 		.stage.is-ready .outro {
 			animation: none;
 			transition: none;
+		}
+
+		.splash-logo {
+			opacity: 1;
+			transform: none;
 		}
 	}
 </style>
