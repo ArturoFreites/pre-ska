@@ -242,12 +242,52 @@
 		}
 	}
 
+	@keyframes dino-toast-stage-in {
+		from {
+			opacity: 0;
+			letter-spacing: -0.16em;
+			transform: translate(-50%, 1.1rem) scale(0.92);
+			filter: blur(4px);
+		}
+		55% {
+			opacity: 1;
+			filter: blur(0);
+			transform: translate(-50%, -0.12rem) scale(1.03);
+		}
+		to {
+			opacity: 1;
+			letter-spacing: -0.09em;
+			transform: translate(-50%, 0) scale(1);
+			filter: blur(0);
+		}
+	}
+
+	@keyframes dino-toast-stage-out {
+		from {
+			opacity: 1;
+			transform: translate(-50%, 0) scale(1);
+		}
+		to {
+			opacity: 0;
+			transform: translate(-50%, -1rem) scale(0.96);
+			filter: blur(3px);
+		}
+	}
+
 	.dino__toast.is-in {
 		animation: dino-toast-in 260ms cubic-bezier(0.2, 0.9, 0.25, 1.1) both;
 	}
 
 	.dino__toast.is-out {
 		animation: dino-toast-out 240ms ease-in both;
+	}
+
+	.dino__toast.is-stage.is-in {
+		animation: dino-toast-stage-in 720ms cubic-bezier(0.16, 0.84, 0.22, 1) both;
+	}
+
+	.dino__toast.is-stage.is-out {
+		animation: dino-toast-stage-out 420ms ease-in both;
 	}
 
 	.dino.is-reduced .dino__toast.is-in,

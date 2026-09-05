@@ -28,6 +28,7 @@ const FOOT_PAD = 8;
 /** Pixels más claros que esto → transparente (fondo ChatGPT) */
 const WHITE_THRESHOLD = 248;
 const ALPHA_MIN = 12;
+const BLACK_PAD_MAX = 26;
 
 /** Sprites que comparten un mismo canvas y deben conservar su alineación mutua */
 const ALIGNED_PREFIXES = ["dino-", "gear-"];
@@ -38,6 +39,13 @@ function isAligned(name) {
 
 function isBackground(r, g, b) {
 	return r >= WHITE_THRESHOLD && g >= WHITE_THRESHOLD && b >= WHITE_THRESHOLD;
+}
+
+function isPadPixel(r, g, b, a) {
+	if (a <= ALPHA_MIN) return true;
+	const mx = Math.max(r, g, b);
+	const mn = Math.min(r, g, b);
+	return mx <= BLACK_PAD_MAX && mx - mn <= 10;
 }
 
 /** RGBA crudo con el fondo blanco de ChatGPT ya pasado a transparente */
@@ -64,7 +72,7 @@ async function loadRgba(inputPath) {
 	return { data, info };
 }
 
-function contentBox(data, info) {
+function contentBox(data, info, { trimBlackPad = false } = {}) {
 	let minX = info.width;
 	let minY = info.height;
 	let maxX = -1;
@@ -72,7 +80,11 @@ function contentBox(data, info) {
 
 	for (let y = 0; y < info.height; y++) {
 		for (let x = 0; x < info.width; x++) {
-			if (data[(y * info.width + x) * 4 + 3] <= ALPHA_MIN) continue;
+			const i = (y * info.width + x) * 4;
+			const keep = trimBlackPad
+				? !isPadPixel(data[i], data[i + 1], data[i + 2], data[i + 3])
+				: data[i + 3] > ALPHA_MIN;
+			if (!keep) continue;
 			if (x < minX) minX = x;
 			if (x > maxX) maxX = x;
 			if (y < minY) minY = y;
@@ -103,7 +115,10 @@ async function fitToCanvas({ data, info }, name) {
 	const canvasH = SIZE;
 	const footPad = isWideBg ? 0 : FOOT_PAD;
 
-	const box = contentBox(data, info);
+	const trimBlackPad =
+		/^p[12]-/.test(name) ||
+		/^(xlr|tripod|clapper|flight|gaffer-roll|pickup-)/.test(name);
+	const box = contentBox(data, info, { trimBlackPad });
 	if (!box) throw new Error("Imagen vacía después de recortar");
 
 	const trimmed = await sharp(data, {

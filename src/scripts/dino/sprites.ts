@@ -288,8 +288,7 @@ export function drawGameSpriteRect(
 	const png = getPngSprite(name);
 	const b = getSpriteBounds(name);
 	if (png) {
-		const prevSmooth = ctx.imageSmoothingEnabled;
-		ctx.imageSmoothingEnabled = false;
+		// imageSmoothingEnabled ya está en false en el canvas del juego
 		if (b) {
 			ctx.drawImage(
 				png,
@@ -311,7 +310,6 @@ export function drawGameSpriteRect(
 				Math.round(rect.h),
 			);
 		}
-		ctx.imageSmoothingEnabled = prevSmooth;
 		return true;
 	}
 
@@ -456,11 +454,21 @@ export function drawGameSprite(
 
 /** Obstacle id → PNG filename in public/game/ */
 export const OBSTACLE_SPRITE: Record<string, string> = {
+	p1_level1: "p1-level1.png",
+	p2_level1: "p2-level1.png",
+	p1_level2: "p1-level2.png",
+	p2_level2: "p2-level2.png",
+	p1_level3: "p1-level3.png",
+	p2_level3: "p2-level3.png",
+	p1_level4: "p1-level4.png",
+	p2_level4: "p2-level4.png",
+	p1_level5: "p1-level5.png",
+	p2_level5: "p2-level5.png",
 	xlr: "xlr.png",
-	tripod: "tripod.png",
+	gaffer_roll: "gaffer-roll.png",
 	clapper: "clapper.png",
 	flight: "flight.png",
-	gaffer_roll: "gaffer-roll.png",
+	tripod: "tripod.png",
 	drone: "drone.png",
 	boom: "boom.png",
 };
@@ -469,10 +477,10 @@ export const PICKUP_SPRITE: Record<string, string> = {
 	mate: "pickup-mate.png",
 	cafe: "pickup-cafe.png",
 	battery: "pickup-battery.png",
-	// Sin PNG propio: se reutilizan assets existentes antes que inventar
-	// archivos que romperían la carga (ver game-manifest.json).
-	slowmo: "decor-cam-a.png",
-	lut: "gear-glasses.png",
+	// Fallbacks: no hay PNG propio (gear/decor salieron de la carpeta)
+	slowmo: "drone.png",
+	lut: "ui-rec-dot.png",
+	flip: "clapper.png",
 };
 
 /** Tanda 3 — decor de fondo por etapa + parallax */
@@ -487,9 +495,15 @@ export const DECOR_SPRITE: Record<string, string> = {
 };
 
 export const BG_SPRITE: Record<string, string> = {
+	clouds: "bg-clouds.png",
+	level1: "bg-level1.png",
+	level2: "bg-level2.png",
+	level3: "bg-level3.png",
+	level4: "bg-level4.png",
+	level5: "bg-level5.png",
+	// Legacy (por si algún stage viejo los referencia)
 	hills: "bg-parallax-hills.png",
 	city: "bg-parallax-city.png",
-	clouds: "bg-clouds-subtle.png",
 };
 
 export const DECOR_MODE: Record<string, DrawMode> = {

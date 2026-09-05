@@ -29,6 +29,8 @@ import {
 	dinoSpriteRect,
 	getSpriteLogicalSize,
 	loadPngSprites,
+	hasPngSprite,
+	getPngSprite,
 	dinoSpriteName,
 	OBSTACLE_SPRITE,
 	PICKUP_SPRITE,
@@ -171,8 +173,17 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	/** Unbounded scroll accumulators — wrapped per-layer at draw time */
 	let scrollNear = 0;
 	let scrollFar = 0;
-	let grainPoints: Array<{ x: number; y: number }> = [];
+	let grainPattern: CanvasPattern | null = null;
 	let scanlinePattern: CanvasPattern | null = null;
+	/** Pre-escalados: evita re-escalar PNG 1024×512 cada frame en el parallax */
+	const parallaxTileCache = new Map<string, HTMLCanvasElement>();
+	let skyGradient: CanvasGradient | null = null;
+	let groundHaze: CanvasGradient | null = null;
+	let groundFloor: CanvasGradient | null = null;
+	let cachedStageId = "";
+	let hudRecText = "";
+	let hudBestText = "";
+	let hudStageText = "";
 	let toast: Toast | null = null;
 	let toastHideTimer = 0;
 	let muted = true;
@@ -193,6 +204,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	let renderBarTtl = 0;
 	let letterboxTtl = 0;
 	let slowMoTtl = 0;
+	let rewindTtl = 0;
+	let gravityFlipTtl = 0;
 	let auraTtl = 0;
 	let argentinaTtl = 0;
 	let reelsTtl = 0;
@@ -204,6 +217,14 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	let eventCooldown = 8;
 	let lastEventId = "";
 	let lastStageId = STAGES[0]!.id;
+	/** Spawns de personajes forzados al entrar a un nivel */
+	let stageForcedLeft = GAME_CONFIG.stageForcedChars;
+	/** Crossfade entre escenarios */
+	let stageTransitionTtl = 0;
+	let stageTransitionDur = 0;
+	let prevStage: StageDef | null = null;
+	let pendingStageToast: string | null = null;
+	let stageToastArmed = false;
 	let particles: Array<{
 		x: number;
 		y: number;
@@ -215,7 +236,9 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	}> = [];
 
 	let wantDuck = false;
-	let touchStartY = 0;
+	/** Hold-to-duck desde zona inferior del canvas / botón (sin delay de salto) */
+	let pointerDuckActive = false;
+	const DUCK_ZONE_RATIO = 0.58;
 	let prevFocus: HTMLElement | null = null;
 	let scrollLockY = 0;
 
@@ -275,12 +298,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	 * textContent every frame would restart nothing and stomp the CSS
 	 * enter/exit animations.
 	 */
-	function showToast(text: string, ttl = 2.3) {
+	function showToast(text: string, ttl = 2.3, opts?: { stage?: boolean }) {
 		toast = { text, ttl };
 		window.clearTimeout(toastHideTimer);
 		toastEl.textContent = text;
 		toastEl.hidden = false;
-		toastEl.classList.remove("is-out", "is-in");
+		toastEl.classList.remove("is-out", "is-in", "is-stage");
+		if (opts?.stage) toastEl.classList.add("is-stage");
 		void toastEl.offsetWidth;
 		toastEl.classList.add("is-in");
 	}
@@ -291,15 +315,23 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		if (toastEl.hidden) return;
 		if (immediate || reduceMotion) {
 			toastEl.hidden = true;
-			toastEl.classList.remove("is-in", "is-out");
+			toastEl.classList.remove("is-in", "is-out", "is-stage");
 			return;
 		}
 		toastEl.classList.remove("is-in");
 		toastEl.classList.add("is-out");
+		const outMs = toastEl.classList.contains("is-stage") ? 420 : 240;
 		toastHideTimer = window.setTimeout(() => {
 			toastEl.hidden = true;
-			toastEl.classList.remove("is-out");
-		}, 240);
+			toastEl.classList.remove("is-out", "is-stage");
+		}, outMs);
+	}
+
+	/** 0 = escenario anterior, 1 = nuevo. Smoothstep. */
+	function stageBlend(): number {
+		if (!prevStage || stageTransitionDur <= 0 || stageTransitionTtl <= 0) return 1;
+		const t = 1 - stageTransitionTtl / stageTransitionDur;
+		return t * t * (3 - 2 * t);
 	}
 
 	/**
@@ -315,6 +347,46 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 
 	function standHeight() {
 		return DINO_LAYOUT_H * scale * DINO_DISPLAY_SCALE;
+	}
+
+	/**
+	 * Carril del dino: izquierda en forward, derecha en reversa (batería).
+	 */
+	function playerLaneX() {
+		const margin = Math.min(150 * scale, W * 0.12);
+		const bodyW = standHeight() * 0.92;
+		if (rewindTtl > 0) return Math.max(margin, W - margin - bodyW);
+		return margin;
+	}
+
+	function syncPlayerLane() {
+		px = playerLaneX();
+	}
+
+	/** Entra / sale del modo reversa: limpia el set y rota al dino de lado. */
+	function beginRewind(duration: number) {
+		const entering = rewindTtl <= 0;
+		rewindTtl = Math.max(rewindTtl, duration);
+		hideRecTtl = Math.max(hideRecTtl, rewindTtl);
+		if (!entering) return;
+		obstacles = [];
+		pickups = [];
+		bgProps = [];
+		spawnTimer = 380;
+		syncPlayerLane();
+	}
+
+	function endRewind() {
+		rewindTtl = 0;
+		obstacles = [];
+		pickups = [];
+		bgProps = [];
+		spawnTimer = 420;
+		syncPlayerLane();
+		if (state === "running") {
+			showToast("LISTO, GRABAMOS DE NUEVO", 2.2);
+			sfx("start");
+		}
 	}
 
 	/** Caja lógica del personaje de pie — de ella sale el canvas compartido */
@@ -408,9 +480,11 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 
 	function resize() {
 		const rect = root.getBoundingClientRect();
-		dpr = Math.min(window.devicePixelRatio || 1, 2);
 		W = Math.max(1, Math.floor(rect.width));
 		H = Math.max(1, Math.floor(rect.height));
+		// Cap DPR: Retina a 2× cuatriplica píxeles y mata el FPS con parallax.
+		const rawDpr = window.devicePixelRatio || 1;
+		dpr = Math.min(rawDpr, isTouch || W < 720 ? 1.25 : 1.5);
 		canvas.width = Math.floor(W * dpr);
 		canvas.height = Math.floor(H * dpr);
 		canvas.style.width = `${W}px`;
@@ -422,20 +496,32 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		scale = Math.max(1.05, Math.min(2.35, Math.min(W / 900, H / 560)));
 		if (isTouch || W < 720) scale = Math.max(scale, 1.2);
 		groundY = H * 0.8;
-		px = Math.min(150 * scale, W * 0.12);
+		syncPlayerLane();
 		if (onGround) py = groundY;
+		parallaxTileCache.clear();
+		skyGradient = null;
+		groundHaze = null;
+		groundFloor = null;
+		cachedStageId = "";
 		buildGrain();
 		buildScanlines();
 		if (open) syncDuckButton();
 	}
 
-	/** Static noise field — animated by drift instead of re-randomising each frame */
+	/** Grain barato: un pattern tileado en lugar de 90 fillRect/frame */
 	function buildGrain() {
-		const count = reduceMotion ? 0 : 90;
-		grainPoints = Array.from({ length: count }, () => ({
-			x: Math.random() * W,
-			y: Math.random() * H,
-		}));
+		grainPattern = null;
+		if (reduceMotion) return;
+		const tile = document.createElement("canvas");
+		tile.width = 64;
+		tile.height = 64;
+		const tctx = tile.getContext("2d");
+		if (!tctx) return;
+		for (let i = 0; i < 36; i++) {
+			tctx.fillStyle = "rgba(255,255,255,0.55)";
+			tctx.fillRect((Math.random() * 64) | 0, (Math.random() * 64) | 0, 1, 1);
+		}
+		grainPattern = ctx.createPattern(tile, "repeat");
 	}
 
 	function buildScanlines() {
@@ -482,6 +568,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		renderBarTtl = 0;
 		letterboxTtl = 0;
 		slowMoTtl = 0;
+		rewindTtl = 0;
+		gravityFlipTtl = 0;
 		auraTtl = 0;
 		argentinaTtl = 0;
 		reelsTtl = 0;
@@ -493,11 +581,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		particles = [];
 		bgProps = [];
 		pickups = [];
+		syncPlayerLane();
 	}
 
 	function resetRun() {
 		state = "idle";
 		obstacles = [];
+		clearPointerDuck();
 		speed = GAME_CONFIG.baseSpeed * physK();
 		spawnTimer = 800;
 		scoreFrames = 0;
@@ -516,6 +606,12 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		eventCooldown = 6 + Math.random() * 4;
 		lastEventId = "";
 		lastStageId = STAGES[0]!.id;
+		stageForcedLeft = GAME_CONFIG.stageForcedChars;
+		stageTransitionTtl = 0;
+		stageTransitionDur = 0;
+		prevStage = null;
+		pendingStageToast = null;
+		stageToastArmed = false;
 		clearPowers();
 		startScreen.hidden = false;
 		overScreen.hidden = true;
@@ -529,6 +625,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		state = "running";
 		startScreen.hidden = true;
 		overScreen.hidden = true;
+		stageForcedLeft = GAME_CONFIG.stageForcedChars;
+		spawnTimer = 420;
 		sfx("start");
 	}
 
@@ -587,22 +685,65 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		if (v && !onGround) pvy = Math.max(pvy, 0) + 200;
 	}
 
-	function poolObstacles(pool: "av" | "arg" | "air") {
-		return OBSTACLE_TYPES.filter((o) => o.pool === pool);
+	function clearPointerDuck() {
+		if (!pointerDuckActive) return;
+		pointerDuckActive = false;
+		setDuck(false);
+	}
+
+	function poolObstacles(pool: "av" | "arg" | "air", stageId: string) {
+		return OBSTACLE_TYPES.filter(
+			(o) => o.pool === pool && (!o.stages || o.stages.includes(stageId)),
+		);
+	}
+
+	/** 0 al entrar al nivel → 1 después de stageIntroFrames */
+	function stageIntroProgress(stage: StageDef): number {
+		const local = Math.max(0, scoreFrames - stage.from);
+		return Math.min(1, local / GAME_CONFIG.stageIntroFrames);
+	}
+
+	function stageCharacters(stageId: string): ObstacleDef[] {
+		return OBSTACLE_TYPES.filter((o) => o.lane === "ground" && o.stages?.includes(stageId));
+	}
+
+	function stageGenerics(): ObstacleDef[] {
+		return OBSTACLE_TYPES.filter((o) => o.lane === "ground" && o.pool === "av" && !o.stages);
 	}
 
 	function pickObstacleDef(): ObstacleDef {
 		const stage = stageFor(scoreFrames);
-		const airOk = scoreFrames > GAME_CONFIG.airUnlockScore && argentinaTtl <= 0;
-		const airChance = stage.airBias + Math.min(0.14, scoreFrames / 10000);
-		const argPool = poolObstacles("arg");
+		const localFrames = Math.max(0, scoreFrames - stage.from);
+		const progress = stageIntroProgress(stage);
+		const characters = stageCharacters(stage.id);
+		const generics = stageGenerics();
+
+		// Primeros spawns del nivel: sí o sí personajes del level
+		if (stageForcedLeft > 0 && characters.length > 0) {
+			stageForcedLeft -= 1;
+			return pickWeighted(characters);
+		}
+
+		// Aéreos según progreso local del nivel (cada stage arranca de 0)
+		const airOk =
+			progress >= 0.55 &&
+			localFrames > GAME_CONFIG.stageAirUnlockFrames &&
+			argentinaTtl <= 0;
+		const airChance = stage.airBias * (0.35 + progress * 0.65);
 		if (airOk && Math.random() < airChance) {
-			return pickWeighted(poolObstacles("air"));
+			return pickWeighted(poolObstacles("air", stage.id));
 		}
-		if (argPool.length > 0 && Math.random() < stage.argBias) {
-			return pickWeighted(argPool);
+
+		// Intro: casi solo p1/p2. Después: más gear genérico, con algo de personajes.
+		const charChance =
+			characters.length === 0 ? 0 : progress < 1 ? 0.94 - progress * 0.58 : 0.3;
+
+		if (characters.length > 0 && Math.random() < charChance) {
+			return pickWeighted(characters);
 		}
-		return pickWeighted(poolObstacles("av"));
+		if (generics.length > 0) return pickWeighted(generics);
+		if (characters.length > 0) return pickWeighted(characters);
+		return pickWeighted(OBSTACLE_TYPES.filter((o) => o.lane === "ground"));
 	}
 
 	function spawnObstacle(forced?: ObstacleDef) {
@@ -638,11 +779,15 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		// bottom edge lands between duck-height and stand-height so ducking works.
 		const lift = AIR_LIFT[def.id] ?? 0.38;
 		const y = air ? groundY - standH * lift : groundY;
-		obstacles.push({ def, x: W + 24, y, w, h, air });
+		const fromLeft = rewindTtl > 0;
+		obstacles.push({ def, x: fromLeft ? -w - 24 : W + 24, y, w, h, air });
 	}
 
 	function spawnPickup() {
-		const def = pickWeighted(PICKUP_TYPES);
+		const stageId = stageFor(scoreFrames).id;
+		const pool = PICKUP_TYPES.filter((p) => !p.stages || p.stages.includes(stageId));
+		if (pool.length === 0) return;
+		const def = pickWeighted(pool);
 		const spriteName = PICKUP_SPRITE[def.id] ?? "";
 		const logical = spriteName
 			? getSpriteLogicalSize(spriteName, { w: def.w, h: def.h })
@@ -653,13 +798,14 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		const h = bh * scale * WORLD_DISPLAY_SCALE * (isTouch ? 1.08 : 1);
 		// Keep pickups inside the reachable band (ground → jump apex)
 		const float = standHeight() * (0.35 + Math.random() * 0.8);
-		pickups.push({ def, x: W + 20, y: groundY - float, w, h });
+		const fromLeft = rewindTtl > 0;
+		pickups.push({ def, x: fromLeft ? -w - 20 : W + 20, y: groundY - float, w, h });
 	}
 
 	function applyPickup(def: PickupDef) {
 		sfx("pickup");
-		showToast(def.label, 2.1);
 		const e = def.effect;
+		showToast(def.label, e.type === "rewind" ? 3.8 : 2.1);
 		switch (e.type) {
 			case "score":
 				scoreFrames += e.frames * multiplier;
@@ -685,6 +831,12 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 				break;
 			case "slowmo":
 				slowMoTtl = Math.max(slowMoTtl, e.duration);
+				break;
+			case "rewind":
+				beginRewind(e.duration);
+				break;
+			case "gravity_flip":
+				gravityFlipTtl = Math.max(gravityFlipTtl, e.duration);
 				break;
 			case "filters":
 				filterTtl = e.duration;
@@ -731,7 +883,10 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 				speedBoostTtl = duration;
 				break;
 			case "spawn_hdd": {
-				const fallback = OBSTACLE_TYPES.find((o) => o.id === "flight") ?? OBSTACLE_TYPES[0];
+				const fallback =
+					OBSTACLE_TYPES.find((o) => o.id === "flight") ??
+					OBSTACLE_TYPES.find((o) => o.lane === "ground") ??
+					OBSTACLE_TYPES[0];
 				if (fallback) {
 					for (let i = 0; i < 3; i++) {
 						window.setTimeout(() => {
@@ -843,15 +998,24 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	}
 
 	function updateHud() {
-		if (hideRecTtl > 0) {
-			hudRec.textContent = "REC ○ —:—:—:—";
-			hudRec.style.opacity = "0.35";
-		} else {
-			hudRec.textContent = `REC ● ${toTimecode(scoreFrames)}`;
-			hudRec.style.opacity = "1";
+		const rec =
+			hideRecTtl > 0 ? "REC ○ —:—:—:—" : `REC ● ${toTimecode(scoreFrames)}`;
+		if (rec !== hudRecText) {
+			hudRecText = rec;
+			hudRec.textContent = rec;
+			hudRec.style.opacity = hideRecTtl > 0 ? "0.35" : "1";
 		}
-		hudBest.textContent = `MEJOR MARCA ${toTimecode(best)}`;
-		hudStage.textContent = stageFor(scoreFrames).label;
+		const bestText = `MEJOR MARCA ${toTimecode(best)}`;
+		if (bestText !== hudBestText) {
+			hudBestText = bestText;
+			hudBest.textContent = bestText;
+		}
+		const stageLabel =
+			prevStage && stageBlend() < 0.45 ? prevStage.label : stageFor(scoreFrames).label;
+		if (stageLabel !== hudStageText) {
+			hudStageText = stageLabel;
+			hudStage.textContent = stageLabel;
+		}
 	}
 
 	function tickTimers(dt: number) {
@@ -868,6 +1032,10 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		renderBarTtl = decay(renderBarTtl);
 		letterboxTtl = decay(letterboxTtl);
 		slowMoTtl = decay(slowMoTtl);
+		const wasRewinding = rewindTtl > 0;
+		rewindTtl = decay(rewindTtl);
+		if (wasRewinding && rewindTtl <= 0) endRewind();
+		gravityFlipTtl = decay(gravityFlipTtl);
 		auraTtl = decay(auraTtl);
 		argentinaTtl = decay(argentinaTtl);
 		reelsTtl = decay(reelsTtl);
@@ -889,13 +1057,45 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			toast.ttl -= dt;
 			if (toast.ttl <= 0) hideToast();
 		}
+
+		if (stageTransitionTtl > 0) {
+			const prev = stageTransitionTtl;
+			stageTransitionTtl = Math.max(0, stageTransitionTtl - dt);
+			// Mensaje a mitad de la transición, no en el corte seco
+			if (
+				stageToastArmed &&
+				pendingStageToast &&
+				prev > stageTransitionDur - GAME_CONFIG.stageToastDelaySec &&
+				stageTransitionTtl <= stageTransitionDur - GAME_CONFIG.stageToastDelaySec
+			) {
+				showToast(pendingStageToast, 2.8, { stage: true });
+				pendingStageToast = null;
+				stageToastArmed = false;
+			}
+			if (stageTransitionTtl <= 0) {
+				prevStage = null;
+				stageForcedLeft = GAME_CONFIG.stageForcedChars;
+				spawnTimer = Math.min(spawnTimer, 520);
+				cachedStageId = "";
+			}
+		}
 	}
 
 	function checkStage() {
 		const stage = stageFor(scoreFrames);
 		if (stage.id !== lastStageId) {
+			prevStage = STAGES.find((s) => s.id === lastStageId) ?? null;
 			lastStageId = stage.id;
-			if (stage.enterToast) showToast(stage.enterToast, 2.2);
+			stageForcedLeft = 0;
+			speedBoost = 0;
+			speedBoostTtl = 0;
+			// Respiración: no spawnear encima del corte
+			spawnTimer = Math.max(spawnTimer, 1100);
+			stageTransitionDur = reduceMotion ? 0.35 : GAME_CONFIG.stageTransitionSec;
+			stageTransitionTtl = stageTransitionDur;
+			pendingStageToast = stage.enterToast ?? null;
+			stageToastArmed = Boolean(pendingStageToast);
+			cachedStageId = "";
 			sfx("event");
 		}
 	}
@@ -903,12 +1103,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	/** Puffs of dirt kicked up at the dino's heels. */
 	function spawnDust(count: number, power: number) {
 		if (reduceMotion) return;
-		const heelX = px + standHeight() * 0.92 * 0.4;
+		const heelX = px + standHeight() * 0.92 * (rewindTtl > 0 ? 0.55 : 0.4);
+		const dir = rewindTtl > 0 ? 1 : -1;
 		for (let i = 0; i < count; i++) {
 			particles.push({
 				x: heelX + (Math.random() * 12 - 6) * scale,
 				y: groundY - Math.random() * 4 * scale,
-				vx: -(40 + Math.random() * 90) * power,
+				vx: dir * (40 + Math.random() * 90) * power,
 				vy: -(10 + Math.random() * 55) * power,
 				ttl: 0.25 + Math.random() * 0.3,
 				size: (1.5 + Math.random() * 2) * scale,
@@ -928,19 +1129,32 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 
 		const timeScale = slowMoTtl > 0 ? 0.45 : 1;
 		const adt = dt * timeScale;
+		const scrollingBack = rewindTtl > 0;
+		const scrollDir = scrollingBack ? -1 : 1;
 
 		tickTimers(adt);
 
 		const k = physK();
+		const stage = stageFor(scoreFrames);
+		const localFrames = Math.max(0, scoreFrames - stage.from);
+		const intro = stageIntroProgress(stage);
+		// Cada nivel arranca siempre de 0: la velocidad solo mira el progreso local
 		const base =
 			GAME_CONFIG.baseSpeed +
-			scoreFrames * (GAME_CONFIG.speedRamp / GAME_CONFIG.framesPerSecond);
+			localFrames * (GAME_CONFIG.speedRamp / GAME_CONFIG.framesPerSecond);
 		speed = Math.min(GAME_CONFIG.maxSpeed * k, (base + speedBoost) * k * easeFactor);
 
-		scoreFrames += adt * GAME_CONFIG.framesPerSecond * multiplier;
-		groundOffset = (groundOffset + speed * adt) % (24 * scale);
-		scrollNear += speed * adt;
-		scrollFar += speed * adt * 0.12;
+		if (scrollingBack) {
+			// No se grabó nada: el timecode no avanza mientras corre en reversa
+			hideRecTtl = Math.max(hideRecTtl, rewindTtl);
+		} else {
+			scoreFrames += adt * GAME_CONFIG.framesPerSecond * multiplier;
+		}
+		const groundPeriod = 24 * scale;
+		groundOffset =
+			(((groundOffset + scrollDir * speed * adt) % groundPeriod) + groundPeriod) % groundPeriod;
+		scrollNear += scrollDir * speed * adt;
+		scrollFar += scrollDir * speed * adt * 0.12;
 
 		checkStage();
 
@@ -980,41 +1194,57 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			if (footfall) spawnDust(2, 0.5);
 		}
 
+		// En reversa también spawnea: los obstáculos entran desde la izquierda
 		if (argentinaTtl <= 0) {
+			const blend = stageBlend();
+			const spawningAllowed =
+				scrollingBack || blend >= 0.72 || stageTransitionTtl <= 0;
 			spawnTimer -= adt * 1000;
 			if (spawnTimer <= 0) {
-				if (scoreFrames > GAME_CONFIG.pickupMinScore && Math.random() < GAME_CONFIG.pickupChance) {
-					spawnPickup();
+				if (!spawningAllowed) {
+					spawnTimer = 280;
 				} else {
-					spawnObstacle();
-				}
-				const t = Math.max(
-					GAME_CONFIG.spawnMinFloor,
-					GAME_CONFIG.spawnMaxMs - scoreFrames * 0.35,
-				);
-				// Hard floor: never spawn closer than one jump arc apart
-				const min = Math.max(
-					GAME_CONFIG.spawnMinFloor,
-					GAME_CONFIG.spawnMinMs - scoreFrames * 0.12,
-				);
-				spawnTimer = (min + Math.random() * Math.max(80, t - min)) / Math.max(0.5, easeFactor);
-				if (scoreFrames > 500 && Math.random() < 0.1) {
-					spawnTimer = Math.min(spawnTimer, GAME_CONFIG.spawnMinFloor);
+					// Misma tasa en todos los niveles; cada poder pesa igual en PICKUP_TYPES
+					if (Math.random() < GAME_CONFIG.pickupChance) {
+						spawnPickup();
+					} else {
+						spawnObstacle();
+					}
+					const introGap = 1 + (1 - intro) * 0.35;
+					const t = Math.max(
+						GAME_CONFIG.spawnMinFloor,
+						(GAME_CONFIG.spawnMaxMs - localFrames * 0.45) * introGap,
+					);
+					const min = Math.max(
+						GAME_CONFIG.spawnMinFloor,
+						(GAME_CONFIG.spawnMinMs - localFrames * 0.15) * introGap,
+					);
+					spawnTimer =
+						(min + Math.random() * Math.max(80, t - min)) / Math.max(0.5, easeFactor);
+					if (intro >= 1 && scoreFrames > 500 && Math.random() < 0.1) {
+						spawnTimer = Math.min(spawnTimer, GAME_CONFIG.spawnMinFloor);
+					}
 				}
 			}
 		}
 
-		for (const o of obstacles) o.x -= speed * adt;
-		obstacles = obstacles.filter((o) => o.x + o.w > -50);
+		for (const o of obstacles) o.x -= scrollDir * speed * adt;
+		obstacles = obstacles.filter((o) =>
+			scrollingBack ? o.x < W + 80 : o.x + o.w > -50,
+		);
 
-		for (const p of pickups) p.x -= speed * adt;
-		pickups = pickups.filter((p) => p.x + p.w > -40);
+		for (const p of pickups) p.x -= scrollDir * speed * adt;
+		pickups = pickups.filter((p) =>
+			scrollingBack ? p.x < W + 60 : p.x + p.w > -40,
+		);
 
 		for (const b of bgProps) {
-			b.x += b.vx * adt;
+			b.x += scrollDir * b.vx * adt;
 			b.ttl -= adt;
 		}
-		bgProps = bgProps.filter((b) => b.ttl > 0 && b.x > -120);
+		bgProps = bgProps.filter((b) =>
+			b.ttl > 0 && (scrollingBack ? b.x < W + 140 : b.x > -120),
+		);
 
 		for (const p of particles) {
 			p.vy += 190 * adt;
@@ -1054,7 +1284,7 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		}
 
 		eventCooldown -= adt;
-		if (eventCooldown <= 0 && argentinaTtl <= 0) tryFireEvent();
+		if (eventCooldown <= 0 && argentinaTtl <= 0 && !scrollingBack) tryFireEvent();
 
 		updateHud();
 	}
@@ -1068,21 +1298,45 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	const INK = SPRITE_PALETTE.primary;
 	const DIM = SPRITE_PALETTE.dim;
 
-	function clear() {
-		const stage = stageFor(scoreFrames);
-
+	function fillStageSky(stage: StageDef, alpha: number) {
+		if (alpha <= 0.01) return;
 		const sky = ctx.createLinearGradient(0, 0, 0, groundY);
 		sky.addColorStop(0, stage.sky);
 		sky.addColorStop(1, stage.bg);
+		ctx.globalAlpha = alpha;
 		ctx.fillStyle = sky;
 		ctx.fillRect(0, 0, W, groundY);
 		ctx.fillStyle = stage.bg;
 		ctx.fillRect(0, groundY, W, H - groundY);
-
 		ctx.fillStyle = stage.tint;
-		ctx.globalAlpha = darkenTtl > 0 ? Math.min(0.3, stage.tintAlpha) : stage.tintAlpha * 0.7;
+		ctx.globalAlpha =
+			alpha * (darkenTtl > 0 ? Math.min(0.3, stage.tintAlpha) : stage.tintAlpha * 0.7);
 		ctx.fillRect(0, 0, W, H);
 		ctx.globalAlpha = 1;
+	}
+
+	function clear() {
+		const stage = stageFor(scoreFrames);
+		const blend = stageBlend();
+
+		if (prevStage && blend < 1) {
+			fillStageSky(prevStage, 1);
+			fillStageSky(stage, blend);
+		} else {
+			if (stage.id !== cachedStageId || !skyGradient) {
+				cachedStageId = stage.id;
+				skyGradient = ctx.createLinearGradient(0, 0, 0, groundY);
+				skyGradient.addColorStop(0, stage.sky);
+				skyGradient.addColorStop(1, stage.bg);
+				groundHaze = ctx.createLinearGradient(0, groundY - 140 * scale, 0, groundY);
+				groundHaze.addColorStop(0, "rgba(255,255,255,0)");
+				groundHaze.addColorStop(1, "rgba(255,255,255,0.07)");
+				groundFloor = ctx.createLinearGradient(0, groundY, 0, H);
+				groundFloor.addColorStop(0, "rgba(255,255,255,0.06)");
+				groundFloor.addColorStop(1, "rgba(0,0,0,0.25)");
+			}
+			fillStageSky(stage, 1);
+		}
 
 		if (darkenTtl > 0) {
 			ctx.fillStyle = "rgba(0,0,0,0.45)";
@@ -1090,52 +1344,51 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		}
 
 		drawGrain(stage);
-		drawParallax(stage);
+		if (prevStage && blend < 1) {
+			drawParallax(prevStage, 1 - blend);
+			drawParallax(stage, blend);
+		} else {
+			drawParallax(stage, 1);
+		}
 		drawDecor(stage);
 		drawGround(stage);
-	}
 
-	/** Aplica el filtro de stage a capas de fondo (como el footage de la web). */
-	function withParallaxFilter(stage: StageDef, draw: () => void) {
-		const filter = stage.parallaxFilter;
-		if (!filter || reduceMotion) {
-			draw();
-			return;
+		// Velo de corte: pico a mitad de la transición (suave, no hard cut)
+		if (prevStage && blend > 0 && blend < 1) {
+			const peak = Math.sin(Math.PI * blend);
+			ctx.fillStyle = `rgba(0,0,0,${0.22 * peak})`;
+			ctx.fillRect(0, 0, W, H);
+			ctx.fillStyle = stage.tint;
+			ctx.globalAlpha = 0.12 * peak;
+			ctx.fillRect(0, 0, W, H);
+			ctx.globalAlpha = 1;
 		}
-		ctx.save();
-		ctx.filter = filter;
-		draw();
-		ctx.restore();
 	}
 
 	function drawGrain(stage: StageDef) {
-		if (reduceMotion || stage.grain <= 0 || grainPoints.length === 0) return;
-		const drift = (performance.now() / 60) % H;
+		if (reduceMotion || stage.grain <= 0 || !grainPattern) return;
+		const drift = ((performance.now() / 60) % 64) | 0;
+		ctx.save();
 		ctx.globalAlpha = stage.grain;
-		ctx.fillStyle = "#fff";
-		for (const p of grainPoints) {
-			const y = (p.y + drift) % H;
-			ctx.fillRect(p.x, y, 1.5, 1.5);
-		}
-		ctx.globalAlpha = 1;
+		ctx.translate(0, -drift);
+		ctx.fillStyle = grainPattern;
+		ctx.fillRect(0, 0, W, H + 64);
+		ctx.restore();
 	}
 
 	function drawGround(stage: StageDef) {
-		// Haze band that fades the horizon into the floor
-		const haze = ctx.createLinearGradient(0, groundY - 140 * scale, 0, groundY);
-		haze.addColorStop(0, "rgba(255,255,255,0)");
-		haze.addColorStop(1, "rgba(255,255,255,0.07)");
-		ctx.fillStyle = haze;
-		ctx.fillRect(0, groundY - 140 * scale, W, 140 * scale);
+		if (groundHaze) {
+			ctx.fillStyle = groundHaze;
+			ctx.fillRect(0, groundY - 140 * scale, W, 140 * scale);
+		}
 
 		ctx.fillStyle = stage.ground;
 		ctx.fillRect(0, groundY, W, H - groundY);
 
-		const floor = ctx.createLinearGradient(0, groundY, 0, H);
-		floor.addColorStop(0, "rgba(255,255,255,0.06)");
-		floor.addColorStop(1, "rgba(0,0,0,0.25)");
-		ctx.fillStyle = floor;
-		ctx.fillRect(0, groundY, W, H - groundY);
+		if (groundFloor) {
+			ctx.fillStyle = groundFloor;
+			ctx.fillRect(0, groundY, W, H - groundY);
+		}
 
 		ctx.fillStyle = stage.groundLine;
 		ctx.fillRect(0, groundY, W, Math.max(2, 2 * scale));
@@ -1150,10 +1403,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	 */
 	function drawFloorSpecks() {
 		const rows: Array<[number, number, number]> = [
-			// [cellPx, yOffsetPx, alpha] — closer rows move faster and brighter
-			[74, 14, 0.16],
-			[128, 46, 0.1],
-			[210, 92, 0.055],
+			[96, 18, 0.14],
+			[160, 52, 0.08],
 		];
 		for (let r = 0; r < rows.length; r++) {
 			const [cell, off, alpha] = rows[r]!;
@@ -1165,7 +1416,6 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			ctx.fillStyle = `rgba(255,255,255,${alpha})`;
 			for (let i = 0; i <= Math.ceil(W / c) + 1; i++) {
 				const cellIndex = first + i;
-				// Cheap deterministic hash so each cell keeps its own jitter
 				const h = Math.sin(cellIndex * 12.9898 + r * 78.233) * 43758.5453;
 				const rnd = h - Math.floor(h);
 				const h2 = Math.sin(cellIndex * 39.3468 + r * 11.135) * 24634.6345;
@@ -1187,44 +1437,90 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		};
 	}
 
+	function getParallaxTile(
+		name: string,
+		tileW: number,
+		tileH: number,
+		filter = "",
+	): HTMLCanvasElement | null {
+		const key = `${name}:${tileW}x${tileH}:${filter}`;
+		const hit = parallaxTileCache.get(key);
+		if (hit) return hit;
+		const png = getPngSprite(name);
+		if (!png) return null;
+		const b = getSpriteBounds(name);
+		const tile = document.createElement("canvas");
+		tile.width = tileW;
+		tile.height = tileH;
+		const tctx = tile.getContext("2d");
+		if (!tctx) return null;
+		tctx.imageSmoothingEnabled = false;
+		// Bake stage filter into the tile once (avoids per-frame ctx.filter).
+		if (filter) tctx.filter = filter;
+		if (b) {
+			tctx.drawImage(png, b.x, b.y, b.w, b.h, 0, 0, tileW, tileH);
+		} else {
+			tctx.drawImage(png, 0, 0, tileW, tileH);
+		}
+		if (filter) tctx.filter = "none";
+		parallaxTileCache.set(key, tile);
+		return tile;
+	}
+
 	/**
-	 * Seamless horizontal tiling using the sprite's real content aspect.
+	 * Seamless horizontal tiling using a pre-scaled tile canvas.
 	 * Every coordinate is integer so the per-draw rounding can't open 1px seams.
 	 */
-	function drawLayer(name: string, layerH: number, bottomY: number, offset: number, alpha: number) {
+	function drawLayer(
+		name: string,
+		layerH: number,
+		bottomY: number,
+		offset: number,
+		alpha: number,
+		filter = "",
+	) {
 		const b = getSpriteBounds(name);
 		const aspect = b && b.aspect > 0 ? b.aspect : 2;
 		const tileW = Math.max(64, Math.round(layerH * aspect));
 		const tileH = Math.max(1, Math.round(tileW / aspect));
+		const tile = getParallaxTile(name, tileW, tileH, filter);
+		if (!tile) return;
 		const top = Math.round(bottomY) - tileH;
 		const start = -Math.round(((offset % tileW) + tileW) % tileW);
 		ctx.globalAlpha = alpha;
 		for (let x = start; x < W; x += tileW) {
-			drawGameSpriteRect(ctx, name, { x, y: top, w: tileW, h: tileH }, "production");
+			ctx.drawImage(tile, x, top);
 		}
 		ctx.globalAlpha = 1;
 	}
 
-	function drawParallax(stage: StageDef) {
+	function drawParallax(stage: StageDef, alphaMul = 1) {
+		if (alphaMul <= 0.02) return;
 		const layers = parallaxForStage(stage);
+		const filter = stage.parallaxFilter ?? "";
 
-		withParallaxFilter(stage, () => {
-			if (layers.sky) {
-				const h = Math.min(H * 0.3, 170 * scale);
-				drawLayer(layers.sky, h, groundY - H * 0.28, scrollFar, 0.16);
-			}
-			if (layers.horizon) {
-				const h = Math.min(H * 0.2, 120 * scale);
-				drawLayer(layers.horizon, h, groundY + 1, scrollNear * 0.3, stage.horizonAlpha ?? 0.36);
-			}
-		});
+		if (layers.sky) {
+			const h = Math.min(H * 0.24, 130 * scale);
+			drawLayer(layers.sky, h, groundY - H * 0.22, scrollFar, 0.2 * alphaMul);
+		}
+		if (layers.horizon) {
+			const h = Math.min(H * 0.4, 220 * scale);
+			drawLayer(
+				layers.horizon,
+				h,
+				groundY + 1,
+				scrollNear * 0.3,
+				(stage.horizonAlpha ?? 0.72) * alphaMul,
+				filter,
+			);
+		}
 
-		// Velo negro/naranja tipo home: el footage queda bajo la marca SKA
 		ctx.fillStyle = stage.tint;
-		ctx.globalAlpha = Math.min(0.22, stage.tintAlpha * 0.55);
+		ctx.globalAlpha = Math.min(0.14, stage.tintAlpha * 0.45) * alphaMul;
 		ctx.fillRect(0, 0, W, groundY);
-		ctx.fillStyle = "rgba(0,0,0,0.28)";
-		ctx.globalAlpha = 1;
+		const veil = stage.id === "level2" ? 0.34 : 0.16;
+		ctx.fillStyle = `rgba(0,0,0,${veil})`;
+		ctx.globalAlpha = alphaMul;
 		ctx.fillRect(0, 0, W, groundY);
 		ctx.globalAlpha = 1;
 	}
@@ -1236,10 +1532,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	 */
 	function drawDecor(stage: StageDef) {
 		const name = DECOR_SPRITE[stage.decor];
-		if (!name) return;
+		if (!name || !hasPngSprite(name)) return;
 		const b = getSpriteBounds(name);
-		// Reserved band: below the HUD and above the jump apex, so a jumping
-		// dino never crosses it.
 		const bandTop = 44 * scale;
 		const apex = (GAME_CONFIG.jumpVelocity * GAME_CONFIG.jumpVelocity) / (2 * GAME_CONFIG.gravity);
 		const bandBottom = groundY - apex * physK() - standHeight() - 16 * scale;
@@ -1247,16 +1541,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		if (band < 60 * scale) return;
 
 		const aspect = b ? b.aspect : 1;
-		// Also capped by width so it never dominates a narrow phone viewport
 		const dh = Math.min(band, H * 0.2, 150 * scale, (W * 0.26) / aspect);
 		const dw = dh * aspect;
 		const ox = 24 * scale;
 		const float = reduceMotion ? 0 : Math.sin(performance.now() / 2600) * 4 * scale;
-		withParallaxFilter(stage, () => {
-			ctx.globalAlpha = stage.decorAlpha ?? 0.26;
-			drawGameSprite(ctx, name, ox, bandBottom - dh + float, dw, dh, DECOR_MODE[stage.decor] ?? "production");
-			ctx.globalAlpha = 1;
-		});
+		ctx.globalAlpha = stage.decorAlpha ?? 0.26;
+		drawGameSprite(ctx, name, ox, bandBottom - dh + float, dw, dh, DECOR_MODE[stage.decor] ?? "production");
+		ctx.globalAlpha = 1;
 	}
 
 	/** Soft contact shadow so sprites read as standing on the floor. */
@@ -1279,7 +1570,9 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			pxRect(o.x, top, o.w, o.h, SPRITE_PALETTE.primary);
 			return;
 		}
-		drawGameSprite(ctx, name, o.x, top, o.w, o.h, obstacleDrawMode(o.def.id));
+		// Piso: plantar en la línea de suelo. Aéreos: sin nudge (flotan a propósito).
+		const footNudge = o.air ? 0 : 0.035;
+		drawGameSprite(ctx, name, o.x, top, o.w, o.h, obstacleDrawMode(o.def.id), footNudge);
 	}
 
 	function drawPickup(p: Pickup) {
@@ -1288,14 +1581,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		const top = p.y - p.h + bob;
 		const cx = p.x + p.w * 0.5;
 		const cy = top + p.h * 0.5;
-		const r = Math.max(p.w, p.h) * 0.75;
-		const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-		glow.addColorStop(0, "rgba(255, 224, 138, 0.35)");
-		glow.addColorStop(1, "rgba(255, 224, 138, 0)");
-		ctx.fillStyle = glow;
+		const r = Math.max(p.w, p.h) * 0.7;
+		ctx.globalAlpha = 0.28;
+		ctx.fillStyle = "#ffe08a";
 		ctx.beginPath();
 		ctx.arc(cx, cy, r, 0, Math.PI * 2);
 		ctx.fill();
+		ctx.globalAlpha = 1;
 		if (!name) {
 			pxRect(p.x, top, p.w, p.h, SPRITE_PALETTE.primary);
 			return;
@@ -1370,7 +1662,16 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		}
 
 		if (flash) ctx.globalAlpha = 0.65;
+		const facingLeft = rewindTtl > 0;
+		if (facingLeft) {
+			ctx.save();
+			const midX = dinoRect.x + dinoRect.w * 0.5;
+			ctx.translate(midX, 0);
+			ctx.scale(-1, 1);
+			ctx.translate(-midX, 0);
+		}
 		const drew = drawGameSpriteRect(ctx, name, dinoRect, "dino");
+		if (facingLeft) ctx.restore();
 		ctx.globalAlpha = 1;
 
 		if (!drew) {
@@ -1443,6 +1744,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		if (hasShield) chips.push(["GAFFER", "#e95514"]);
 		if (multiplier > 1) chips.push([`x${multiplier}`, "#ffb070"]);
 		if (invulnTtl > 0) chips.push([`INVENCIBLE ${invulnTtl.toFixed(1)}`, "#78c8ff"]);
+		if (rewindTtl > 0) chips.push([`REVERSA ${Math.ceil(rewindTtl)}s`, "#ff6b6b"]);
+		if (gravityFlipTtl > 0) chips.push([`INVERTIDO ${Math.ceil(gravityFlipTtl)}s`, "#7dffb3"]);
 		if (slowMoTtl > 0) chips.push([`SLOW MO ${slowMoTtl.toFixed(1)}`, "#b7a6ff"]);
 		if (filterIndex >= 0) chips.push([FILTER_CYCLE[filterIndex]!.label, "#ff9f6e"]);
 		if (easeTtl > 0 && easeFactor < 1) chips.push(["PRESUPUESTO OK", "#8ef0a4"]);
@@ -1484,6 +1787,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	}
 
 	function render() {
+		const flipped = gravityFlipTtl > 0;
+		ctx.save();
+		if (flipped) {
+			// Espejo vertical: el piso lógico queda arriba (estilo Geometry Dash)
+			ctx.translate(0, H);
+			ctx.scale(1, -1);
+		}
 		clear();
 		for (const b of bgProps) drawBgProp(b);
 		for (const o of obstacles) drawObstacle(o);
@@ -1495,8 +1805,11 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			drawDino();
 			ctx.globalAlpha = 1;
 		}
-		drawOverlays();
 		drawScanlines();
+		ctx.restore();
+
+		// HUD / overlays siempre legibles (sin espejar)
+		drawOverlays();
 		if (freezeTtl > 0) {
 			ctx.fillStyle = "rgba(0,0,0,0.15)";
 			ctx.fillRect(0, 0, W, H);
@@ -1564,6 +1877,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		open = false;
 		cancelAnimationFrame(raf);
 		raf = 0;
+		clearPointerDuck();
+		setDuck(false);
 		state = "idle";
 		obstacles = [];
 		pickups = [];
@@ -1608,28 +1923,51 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			e.preventDefault();
 			jump();
 		}
-		if (e.code === "ArrowDown") {
+		if (e.code === "ArrowDown" || e.code === "KeyS") {
 			e.preventDefault();
 			setDuck(true);
 		}
 	});
 	on(window, "keyup", (e) => {
 		if (!open) return;
-		if (e.code === "ArrowDown") setDuck(false);
+		if (e.code === "ArrowDown" || e.code === "KeyS") setDuck(false);
 	});
+	on(window, "blur", () => {
+		clearPointerDuck();
+		setDuck(false);
+	});
+
+	/**
+	 * Sin lag: salto al toque inmediato.
+	 * Mantener en la zona inferior del canvas = agacharse (desktop + mobile).
+	 */
 	on(canvas, "pointerdown", (e) => {
 		if (!open) return;
-		if (e.pointerType === "touch") touchStartY = e.clientY;
+		if (typeof e.button === "number" && e.button !== 0) return;
+		try {
+			canvas.setPointerCapture(e.pointerId);
+		} catch {
+			/* ignore */
+		}
+		if (state !== "running") {
+			jump();
+			return;
+		}
+		const rect = canvas.getBoundingClientRect();
+		const localY = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0;
+		if (localY >= DUCK_ZONE_RATIO) {
+			pointerDuckActive = true;
+			setDuck(true);
+			return;
+		}
 		jump();
 	});
-	on(canvas, "pointerup", (e) => {
+	const endCanvasPointer = () => {
 		if (!open) return;
-		if (e.pointerType === "touch") {
-			const dy = e.clientY - touchStartY;
-			if (dy > 40) setDuck(true);
-			else setDuck(false);
-		}
-	});
+		clearPointerDuck();
+	};
+	on(canvas, "pointerup", endCanvasPointer);
+	on(canvas, "pointercancel", endCanvasPointer);
 
 	const onClose = () => closeGame();
 	const onRetry = () => startRun();
@@ -1643,12 +1981,19 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	const duckDown = (e: Event) => {
 		e.preventDefault();
 		e.stopPropagation();
+		const pe = e as PointerEvent;
+		try {
+			btnDuck.setPointerCapture(pe.pointerId);
+		} catch {
+			/* ignore */
+		}
+		pointerDuckActive = true;
 		setDuck(true);
 	};
 	const duckUp = (e: Event) => {
 		e.preventDefault();
 		e.stopPropagation();
-		setDuck(false);
+		clearPointerDuck();
 	};
 
 	btnClose.addEventListener("click", onClose);

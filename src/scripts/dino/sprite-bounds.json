@@ -11,6 +11,72 @@
       "foot": 50,
       "kind": "decor"
     },
+    "bg-clouds.png": {
+      "x": 0,
+      "y": 97,
+      "w": 1024,
+      "h": 318,
+      "sw": 1024,
+      "sh": 512,
+      "aspect": 3.2201,
+      "foot": 97,
+      "kind": "decor"
+    },
+    "bg-level1.png": {
+      "x": 0,
+      "y": 166,
+      "w": 1024,
+      "h": 181,
+      "sw": 1024,
+      "sh": 512,
+      "aspect": 5.6575,
+      "foot": 165,
+      "kind": "decor"
+    },
+    "bg-level2.png": {
+      "x": 0,
+      "y": 169,
+      "w": 1024,
+      "h": 174,
+      "sw": 1024,
+      "sh": 512,
+      "aspect": 5.8851,
+      "foot": 169,
+      "kind": "decor"
+    },
+    "bg-level3.png": {
+      "x": 0,
+      "y": 177,
+      "w": 1024,
+      "h": 158,
+      "sw": 1024,
+      "sh": 512,
+      "aspect": 6.481,
+      "foot": 177,
+      "kind": "decor"
+    },
+    "bg-level4.png": {
+      "x": 0,
+      "y": 178,
+      "w": 1024,
+      "h": 156,
+      "sw": 1024,
+      "sh": 512,
+      "aspect": 6.5641,
+      "foot": 178,
+      "kind": "decor"
+    },
+    "bg-level5.png": {
+      "x": 0,
+      "y": 169,
+      "w": 1024,
+      "h": 175,
+      "sw": 1024,
+      "sh": 512,
+      "aspect": 5.8514,
+      "foot": 168,
+      "kind": "decor"
+    },
     "bg-parallax-city.png": {
       "x": 0,
       "y": 177,
@@ -54,83 +120,6 @@
       "aspect": 1.2047,
       "foot": 8,
       "kind": "obstacle"
-    },
-    "decor-aura.png": {
-      "x": 24,
-      "y": 0,
-      "w": 464,
-      "h": 504,
-      "sw": 512,
-      "sh": 512,
-      "aspect": 0.9206,
-      "foot": 8,
-      "kind": "decor"
-    },
-    "decor-cam-a.png": {
-      "x": 33,
-      "y": 0,
-      "w": 446,
-      "h": 504,
-      "sw": 512,
-      "sh": 512,
-      "aspect": 0.8849,
-      "foot": 8,
-      "kind": "decor"
-    },
-    "decor-export.png": {
-      "x": 0,
-      "y": 43,
-      "w": 512,
-      "h": 461,
-      "sw": 512,
-      "sh": 512,
-      "aspect": 1.1106,
-      "foot": 8,
-      "kind": "decor"
-    },
-    "decor-night-moon.png": {
-      "x": 19,
-      "y": 0,
-      "w": 474,
-      "h": 504,
-      "sw": 512,
-      "sh": 512,
-      "aspect": 0.9405,
-      "foot": 8,
-      "kind": "decor"
-    },
-    "decor-storyboard.png": {
-      "x": 8,
-      "y": 0,
-      "w": 497,
-      "h": 504,
-      "sw": 512,
-      "sh": 512,
-      "aspect": 0.9861,
-      "foot": 8,
-      "kind": "decor"
-    },
-    "decor-street-ext.png": {
-      "x": 52,
-      "y": 0,
-      "w": 409,
-      "h": 504,
-      "sw": 512,
-      "sh": 512,
-      "aspect": 0.8115,
-      "foot": 8,
-      "kind": "decor"
-    },
-    "decor-timeline.png": {
-      "x": 0,
-      "y": 83,
-      "w": 512,
-      "h": 421,
-      "sw": 512,
-      "sh": 512,
-      "aspect": 1.2162,
-      "foot": 8,
-      "kind": "decor"
     },
     "dino-duck.png": {
       "x": 0,
@@ -209,60 +198,115 @@
       "foot": 8,
       "kind": "obstacle"
     },
-    "gear-glasses.png": {
-      "x": 165,
-      "y": 126,
-      "w": 316,
-      "h": 108,
+    "p1-level1.png": {
+      "x": 100,
+      "y": 14,
+      "w": 313,
+      "h": 490,
       "sw": 512,
       "sh": 512,
-      "aspect": 2.9259,
-      "foot": 278,
-      "kind": "gear"
+      "aspect": 0.6388,
+      "foot": 8,
+      "kind": "obstacle"
     },
-    "gear-headset.png": {
-      "x": 158,
-      "y": 0,
-      "w": 287,
-      "h": 285,
+    "p1-level2.png": {
+      "x": 112,
+      "y": 15,
+      "w": 288,
+      "h": 489,
       "sw": 512,
       "sh": 512,
-      "aspect": 1.007,
-      "foot": 227,
-      "kind": "gear"
+      "aspect": 0.589,
+      "foot": 8,
+      "kind": "obstacle"
     },
-    "gear-mate.png": {
-      "x": 153,
-      "y": 33,
-      "w": 317,
-      "h": 396,
-      "sw": 512,
-      "sh": 512,
-      "aspect": 0.8005,
-      "foot": 83,
-      "kind": "gear"
+    "p1-level3.png": {
+      "x": 44,
+      "y": 53,
+      "w": 1156,
+      "h": 1154,
+      "sw": 1254,
+      "sh": 1254,
+      "aspect": 1.0017,
+      "foot": 47,
+      "kind": "obstacle"
     },
-    "gear-megaphone.png": {
-      "x": 135,
-      "y": 113,
-      "w": 354,
-      "h": 268,
+    "p1-level4.png": {
+      "x": 136,
+      "y": 9,
+      "w": 241,
+      "h": 495,
       "sw": 512,
       "sh": 512,
-      "aspect": 1.3209,
-      "foot": 131,
-      "kind": "gear"
+      "aspect": 0.4869,
+      "foot": 8,
+      "kind": "obstacle"
     },
-    "gear-vest.png": {
-      "x": 163,
-      "y": 196,
-      "w": 210,
-      "h": 208,
+    "p1-level5.png": {
+      "x": 80,
+      "y": 287,
+      "w": 1152,
+      "h": 728,
+      "sw": 1254,
+      "sh": 1254,
+      "aspect": 1.5824,
+      "foot": 239,
+      "kind": "obstacle"
+    },
+    "p2-level1.png": {
+      "x": 1,
+      "y": 283,
+      "w": 511,
+      "h": 221,
       "sw": 512,
       "sh": 512,
-      "aspect": 1.0096,
-      "foot": 108,
-      "kind": "gear"
+      "aspect": 2.3122,
+      "foot": 8,
+      "kind": "obstacle"
+    },
+    "p2-level2.png": {
+      "x": 127,
+      "y": 7,
+      "w": 258,
+      "h": 497,
+      "sw": 512,
+      "sh": 512,
+      "aspect": 0.5191,
+      "foot": 8,
+      "kind": "obstacle"
+    },
+    "p2-level3.png": {
+      "x": 74,
+      "y": 15,
+      "w": 364,
+      "h": 489,
+      "sw": 512,
+      "sh": 512,
+      "aspect": 0.7444,
+      "foot": 8,
+      "kind": "obstacle"
+    },
+    "p2-level4.png": {
+      "x": 105,
+      "y": 11,
+      "w": 303,
+      "h": 493,
+      "sw": 512,
+      "sh": 512,
+      "aspect": 0.6146,
+      "foot": 8,
+      "kind": "obstacle"
+    },
+    "p2-level5.png": {
+      "x": 107,
+      "y": 8,
+      "w": 298,
+      "h": 496,
+      "sw": 512,
+      "sh": 512,
+      "aspect": 0.6008,
+      "foot": 8,
+      "kind": "obstacle"
     },
     "pickup-battery.png": {
       "x": 0,
@@ -331,5 +375,5 @@
       "kind": "obstacle"
     }
   },
-  "updatedAt": "2026-09-05T02:29:01.868Z"
+  "updatedAt": "2026-09-05T06:39:48.852Z"
 }

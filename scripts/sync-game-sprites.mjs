@@ -15,6 +15,15 @@ const BOUNDS_OUT = path.join(ROOT, "src/scripts/dino/sprite-bounds.json");
 const MANIFEST_OUT = path.join(ROOT, "src/scripts/dino/game-manifest.json");
 
 const ALPHA_MIN = 12;
+/** Padding negro bajo los pies (ChatGPT) — no confundir con detalles oscuros internos */
+const BLACK_PAD_MAX = 26;
+
+function isPadPixel(r, g, b, a) {
+	if (a <= ALPHA_MIN) return true;
+	const mx = Math.max(r, g, b);
+	const mn = Math.min(r, g, b);
+	return mx <= BLACK_PAD_MAX && mx - mn <= 10;
+}
 
 function kindFromName(name) {
 	if (name.startsWith("dino-")) return "dino";
@@ -32,6 +41,11 @@ async function analyzeFile(name) {
 		.raw()
 		.toBuffer({ resolveWithObject: true });
 
+	// Obstáculos/pickups de piso: ignorar negro de padding bajo los pies
+	const trimBlackPad =
+		/^p[12]-/.test(name) ||
+		/^(xlr|tripod|clapper|flight|gaffer-roll|pickup-)/.test(name);
+
 	let minX = info.width;
 	let minY = info.height;
 	let maxX = 0;
@@ -39,13 +53,16 @@ async function analyzeFile(name) {
 
 	for (let y = 0; y < info.height; y++) {
 		for (let x = 0; x < info.width; x++) {
-			const a = data[(y * info.width + x) * 4 + 3];
-			if (a > ALPHA_MIN) {
-				minX = Math.min(minX, x);
-				maxX = Math.max(maxX, x);
-				minY = Math.min(minY, y);
-				maxY = Math.max(maxY, y);
-			}
+			const i = (y * info.width + x) * 4;
+			const r = data[i];
+			const g = data[i + 1];
+			const b = data[i + 2];
+			const a = data[i + 3];
+			if (trimBlackPad ? isPadPixel(r, g, b, a) : a <= ALPHA_MIN) continue;
+			minX = Math.min(minX, x);
+			maxX = Math.max(maxX, x);
+			minY = Math.min(minY, y);
+			maxY = Math.max(maxY, y);
 		}
 	}
 

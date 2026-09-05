@@ -28,13 +28,25 @@ export const GAME_CONFIG = {
 	eventCooldownMax: 16,
 	eventMinScore: 180,
 	pickupChance: 0.14,
-	pickupMinScore: 120,
+	/** 0 = poderes desde el inicio de cualquier nivel, misma tasa en todos */
+	pickupMinScore: 0,
 	/** Fallback biases if stage omits them */
 	argentineChance: 0.11,
 	airChanceBase: 0.26,
 	airUnlockScore: 360,
 	/** Chance to roll a meme event instead of stage pool */
 	memeEventChance: 0.08,
+	/**
+	 * Cada nivel reinicia dificultad desde 0 (no es competitivo: es un
+	 * recorrido de escenarios). Intro prioriza p1/p2 antes del gear genérico.
+	 */
+	stageIntroFrames: 320,
+	stageForcedChars: 2,
+	/** Frames locales del nivel antes de desbloquear aéreos */
+	stageAirUnlockFrames: 200,
+	/** Crossfade de escenario + mensaje al cambiar de nivel (segundos) */
+	stageTransitionSec: 1.65,
+	stageToastDelaySec: 0.55,
 	/** Collision insets — fraction shrunk from each edge (higher = more forgiving) */
 	collision: {
 		playerInsetX: 0.32,
@@ -69,6 +81,17 @@ export const SFX_PROFILES: Record<
 
 export type StageDecor = "storyboard" | "cam" | "street" | "night" | "timeline" | "export" | "aura";
 
+/** Claves de BG_SPRITE usadas por etapa */
+export type BgSpriteKey =
+	| "clouds"
+	| "hills"
+	| "city"
+	| "level1"
+	| "level2"
+	| "level3"
+	| "level4"
+	| "level5";
+
 export interface StageDef {
 	id: string;
 	label: string;
@@ -84,8 +107,8 @@ export interface StageDef {
 	groundLine: string;
 	grain: number;
 	/** Capas de parallax: clave de BG_SPRITE o null para apagar la capa */
-	bgSky?: "clouds" | "hills" | "city" | null;
-	bgHorizon?: "clouds" | "hills" | "city" | null;
+	bgSky?: BgSpriteKey | null;
+	bgHorizon?: BgSpriteKey | null;
 	/** Opacidad de la silueta del horizonte y del decor de esquina */
 	horizonAlpha?: number;
 	decorAlpha?: number;
@@ -106,166 +129,122 @@ export interface StageDef {
 	enterToast?: string;
 }
 
+/** 5 niveles — cada uno con bg-levelN + obstáculos p1/p2-levelN */
 export const STAGES: StageDef[] = [
 	{
-		id: "pre",
-		label: "PREPRODUCCIÓN",
+		id: "level1",
+		label: "NIVEL 1 · DEPÓSITO",
 		from: 0,
-		bg: "#5c1012",
-		sky: "#1a0809",
+		bg: "#2a3038",
+		sky: "#12161c",
 		tint: "#e95514",
-		tintAlpha: 0.22,
-		ground: "#120c0c",
-		groundLine: "rgba(255,255,255,0.18)",
-		grain: 0.04,
-		argBias: 0.06,
-		airBias: 0.18,
+		tintAlpha: 0.14,
+		ground: "#1a1e24",
+		groundLine: "rgba(255,255,255,0.16)",
+		grain: 0.035,
+		argBias: 0,
+		airBias: 0.16,
+		eventTags: ["calle", "av", "any"],
+		sfx: "street",
+		decor: "street",
+		bgSky: "clouds",
+		bgHorizon: "level1",
+		horizonAlpha: 0.72,
+		decorAlpha: 0.12,
+		parallaxFilter: "contrast(1.05) brightness(0.92)",
+		enterToast: "DEPÓSITO",
+	},
+	{
+		id: "level2",
+		label: "NIVEL 2 · SÓTANO",
+		from: 500,
+		bg: "#1c1816",
+		sky: "#0e0c0b",
+		tint: "#e95514",
+		tintAlpha: 0.16,
+		ground: "#141210",
+		groundLine: "rgba(255,180,120,0.14)",
+		grain: 0.045,
+		argBias: 0,
+		airBias: 0.2,
 		eventTags: ["pre", "av", "any"],
 		sfx: "soft",
 		decor: "storyboard",
 		bgSky: "clouds",
-		bgHorizon: "hills",
-		horizonAlpha: 0.28,
-		decorAlpha: 0.22,
-		parallaxFilter: "grayscale(0.75) contrast(1.12) brightness(0.62)",
+		bgHorizon: "level2",
+		horizonAlpha: 0.55,
+		decorAlpha: 0.1,
+		parallaxFilter: "contrast(1.15) brightness(0.42)",
+		enterToast: "SÓTANO",
 	},
 	{
-		id: "rodaje",
-		label: "RODAJE",
-		from: 450,
-		bg: "#7a0f12",
-		sky: "#2a0a0c",
+		id: "level3",
+		label: "NIVEL 3 · DOJO",
+		from: 1200,
+		bg: "#2a1010",
+		sky: "#140808",
 		tint: "#e95514",
-		tintAlpha: 0.28,
-		ground: "#140e0e",
-		groundLine: "rgba(255,255,255,0.2)",
-		grain: 0.045,
-		argBias: 0.1,
-		airBias: 0.26,
+		tintAlpha: 0.18,
+		ground: "#180c0c",
+		groundLine: "rgba(233,85,20,0.22)",
+		grain: 0.04,
+		argBias: 0,
+		airBias: 0.22,
 		eventTags: ["rodaje", "av", "any"],
 		sfx: "set",
 		decor: "cam",
 		bgSky: "clouds",
-		bgHorizon: "hills",
-		horizonAlpha: 0.32,
-		decorAlpha: 0.26,
-		parallaxFilter: "grayscale(0.7) contrast(1.15) brightness(0.58)",
-		enterToast: "RODANDO",
+		bgHorizon: "level3",
+		horizonAlpha: 0.76,
+		decorAlpha: 0.1,
+		parallaxFilter: "sepia(0.15) contrast(1.08) brightness(0.9)",
+		enterToast: "DOJO",
 	},
 	{
-		id: "calle",
-		label: "EXTERIOR / CALLE",
-		from: 900,
-		bg: "#4a1410",
-		sky: "#6a2014",
-		tint: "#e95514",
-		tintAlpha: 0.3,
-		ground: "#161010",
-		groundLine: "rgba(255,180,120,0.22)",
-		grain: 0.05,
-		argBias: 0.32,
-		airBias: 0.22,
-		eventTags: ["calle", "arg", "av", "any"],
-		sfx: "street",
-		decor: "street",
-		bgSky: "clouds",
-		bgHorizon: "city",
-		horizonAlpha: 0.4,
-		decorAlpha: 0.28,
-		parallaxFilter: "grayscale(0.45) sepia(0.35) contrast(1.1) brightness(0.68)",
-		enterToast: "SALIMOS A LA CALLE",
-	},
-	{
-		id: "noche",
-		label: "NOCHE DE RODAJE",
-		from: 1500,
-		bg: "#0c0808",
-		sky: "#050404",
-		tint: "#7a0f12",
-		tintAlpha: 0.35,
-		ground: "#080606",
-		groundLine: "rgba(233,85,20,0.2)",
-		grain: 0.07,
-		argBias: 0.12,
-		airBias: 0.34,
-		eventTags: ["noche", "av", "any"],
-		sfx: "night",
-		decor: "night",
-		bgSky: null,
-		bgHorizon: "city",
-		horizonAlpha: 0.42,
-		decorAlpha: 0.3,
-		parallaxFilter: "grayscale(0.9) contrast(1.2) brightness(0.42)",
-		enterToast: "PERDEMOS LA LUZ NATURAL",
-	},
-	{
-		id: "post",
-		label: "POSTPRODUCCIÓN",
+		id: "level4",
+		label: "NIVEL 4 · ESCUELA",
 		from: 2200,
-		bg: "#121010",
-		sky: "#080707",
+		bg: "#1a2438",
+		sky: "#0c1420",
 		tint: "#e95514",
-		tintAlpha: 0.18,
-		ground: "#0a0808",
-		groundLine: "rgba(255,255,255,0.14)",
-		grain: 0.035,
-		argBias: 0.06,
-		airBias: 0.28,
-		eventTags: ["post", "av", "any"],
-		sfx: "post",
-		decor: "timeline",
-		bgSky: "clouds",
-		bgHorizon: "hills",
-		horizonAlpha: 0.2,
-		decorAlpha: 0.28,
-		parallaxFilter: "grayscale(1) contrast(1.25) brightness(0.5)",
-		enterToast: "A LA ISLA",
-	},
-	{
-		id: "client",
-		label: "ENTREGA / CLIENT",
-		from: 3200,
-		bg: "#1a1010",
-		sky: "#0c0808",
-		tint: "#e95514",
-		tintAlpha: 0.24,
-		ground: "#100c0c",
-		groundLine: "rgba(255,200,160,0.18)",
+		tintAlpha: 0.12,
+		ground: "#121820",
+		groundLine: "rgba(180,200,255,0.16)",
 		grain: 0.03,
-		argBias: 0.08,
+		argBias: 0,
 		airBias: 0.24,
 		eventTags: ["client", "av", "any"],
 		sfx: "client",
 		decor: "export",
 		bgSky: "clouds",
-		bgHorizon: "city",
-		horizonAlpha: 0.28,
-		decorAlpha: 0.26,
-		parallaxFilter: "grayscale(0.8) contrast(1.1) brightness(0.55)",
-		enterToast: "MANDO EL LINK",
+		bgHorizon: "level4",
+		horizonAlpha: 0.78,
+		decorAlpha: 0.1,
+		parallaxFilter: "contrast(1.06) brightness(0.94)",
+		enterToast: "ESCUELA",
 	},
 	{
-		id: "aura",
-		label: "AURA MAX",
-		from: 5000,
-		bg: "#2a0c10",
-		sky: "#140608",
+		id: "level5",
+		label: "NIVEL 5 · CALLE",
+		from: 3500,
+		bg: "#121418",
+		sky: "#08090c",
 		tint: "#e95514",
-		tintAlpha: 0.4,
-		ground: "#120a0c",
-		groundLine: "rgba(255,140,80,0.32)",
-		grain: 0.06,
-		argBias: 0.1,
-		airBias: 0.3,
-		eventTags: ["aura", "meme", "av", "any"],
-		sfx: "aura",
-		decor: "aura",
+		tintAlpha: 0.2,
+		ground: "#0c0e12",
+		groundLine: "rgba(255,120,80,0.18)",
+		grain: 0.05,
+		argBias: 0,
+		airBias: 0.28,
+		eventTags: ["noche", "calle", "meme", "av", "any"],
+		sfx: "night",
+		decor: "night",
 		bgSky: "clouds",
-		bgHorizon: "hills",
-		horizonAlpha: 0.36,
-		decorAlpha: 0.34,
-		parallaxFilter: "grayscale(0.35) contrast(1.2) brightness(0.7) saturate(1.3)",
-		enterToast: "AURA DE DIRECTOR +9999",
+		bgHorizon: "level5",
+		horizonAlpha: 0.8,
+		decorAlpha: 0.12,
+		parallaxFilter: "contrast(1.1) brightness(0.86)",
+		enterToast: "CALLE DE NOCHE",
 	},
 ];
 
@@ -292,6 +271,8 @@ export interface ObstacleDef {
 	weight: number;
 	pool: "av" | "arg" | "air";
 	variant?: string;
+	/** Si está, solo aparece en esos stage ids (p1/p2 por nivel) */
+	stages?: string[];
 }
 
 /**
@@ -300,17 +281,34 @@ export interface ObstacleDef {
  * estas mismas unidades (DINO_LAYOUT_H 44 × DINO_DISPLAY_SCALE 1.48) y los
  * obstáculos se dibujan × WORLD_DISPLAY_SCALE (1.32), así que la altura
  * relativa al dino es `h × 1.32 / 65`. `w` sólo se usa si falta el PNG.
+ *
+ * Por nivel: p1/p2 (stages). En todos: gear de producción (sin stages).
  */
 export const OBSTACLE_TYPES: ObstacleDef[] = [
-	// Piso — de más bajo a más alto
-	{ id: "xlr", lane: "ground", family: "cable", w: 21, h: 11, weight: 10, pool: "av", variant: "xlr" }, // 0.22× dino
-	{ id: "gaffer_roll", lane: "ground", family: "small", w: 19, h: 12, weight: 7, pool: "av", variant: "gaffer" }, // 0.24×
-	{ id: "clapper", lane: "ground", family: "small", w: 25, h: 21, weight: 8, pool: "av", variant: "clapper" }, // 0.43×
-	{ id: "flight", lane: "ground", family: "box", w: 34, h: 25, weight: 9, pool: "av", variant: "flight" }, // 0.51×
-	{ id: "tripod", lane: "ground", family: "stand", w: 34, h: 43, weight: 10, pool: "av", variant: "tripod" }, // 0.87×
+	// Nivel 1 — depósito
+	{ id: "p1_level1", lane: "ground", family: "creature", w: 28, h: 40, weight: 10, pool: "av", variant: "p1", stages: ["level1"] },
+	{ id: "p2_level1", lane: "ground", family: "rider", w: 48, h: 28, weight: 9, pool: "av", variant: "p2", stages: ["level1"] },
+	// Nivel 2 — sótano
+	{ id: "p1_level2", lane: "ground", family: "creature", w: 40, h: 38, weight: 10, pool: "av", variant: "p1", stages: ["level2"] },
+	{ id: "p2_level2", lane: "ground", family: "creature", w: 36, h: 44, weight: 9, pool: "av", variant: "p2", stages: ["level2"] },
+	// Nivel 3 — dojo
+	{ id: "p1_level3", lane: "ground", family: "creature", w: 40, h: 40, weight: 10, pool: "av", variant: "p1", stages: ["level3"] },
+	{ id: "p2_level3", lane: "ground", family: "creature", w: 30, h: 40, weight: 9, pool: "av", variant: "p2", stages: ["level3"] },
+	// Nivel 4 — escuela
+	{ id: "p1_level4", lane: "ground", family: "creature", w: 34, h: 46, weight: 10, pool: "av", variant: "p1", stages: ["level4"] },
+	{ id: "p2_level4", lane: "ground", family: "creature", w: 36, h: 52, weight: 9, pool: "av", variant: "p2", stages: ["level4"] },
+	// Nivel 5 — calle
+	{ id: "p1_level5", lane: "ground", family: "creature", w: 52, h: 34, weight: 10, pool: "av", variant: "p1", stages: ["level5"] },
+	{ id: "p2_level5", lane: "ground", family: "creature", w: 36, h: 48, weight: 9, pool: "av", variant: "p2", stages: ["level5"] },
+	// Producción — todos los niveles
+	{ id: "xlr", lane: "ground", family: "cable", w: 21, h: 11, weight: 8, pool: "av", variant: "xlr" },
+	{ id: "gaffer_roll", lane: "ground", family: "small", w: 19, h: 14, weight: 7, pool: "av", variant: "gaffer" },
+	{ id: "clapper", lane: "ground", family: "small", w: 25, h: 22, weight: 8, pool: "av", variant: "clapper" },
+	{ id: "flight", lane: "ground", family: "box", w: 34, h: 26, weight: 8, pool: "av", variant: "flight" },
+	{ id: "tripod", lane: "ground", family: "stand", w: 34, h: 43, weight: 8, pool: "av", variant: "tripod" },
 	// Aéreos — se pasan agachándose (o saltando por encima)
-	{ id: "drone", lane: "air", family: "air", w: 33, h: 17, weight: 10, pool: "air", variant: "drone" }, // 0.35×
-	{ id: "boom", lane: "air", family: "air", w: 43, h: 15, weight: 9, pool: "air", variant: "boom" }, // 0.30×
+	{ id: "drone", lane: "air", family: "air", w: 33, h: 18, weight: 10, pool: "air", variant: "drone" },
+	{ id: "boom", lane: "air", family: "air", w: 43, h: 16, weight: 9, pool: "air", variant: "boom" },
 ];
 
 export type PickupEffect =
@@ -323,7 +321,11 @@ export type PickupEffect =
 	/** Cámara lenta: el mundo corre al 45% durante `duration` segundos */
 	| { type: "slowmo"; duration: number }
 	/** Rueda los filtros de FILTER_CYCLE cada `every` segundos */
-	| { type: "filters"; duration: number; every: number };
+	| { type: "filters"; duration: number; every: number }
+	/** El scroll se invierte: el nivel “retrocede” como si no se hubiera grabado */
+	| { type: "rewind"; duration: number }
+	/** Espejo vertical estilo Geometry Dash: piso arriba */
+	| { type: "gravity_flip"; duration: number };
 
 export interface PickupDef {
 	id: string;
@@ -333,6 +335,8 @@ export interface PickupDef {
 	weight: number;
 	effect: PickupEffect;
 	variant: string;
+	/** Si está, solo aparece en esos stage ids */
+	stages?: string[];
 }
 
 /**
@@ -342,11 +346,29 @@ export interface PickupDef {
  * Igual que en los obstáculos, `h` manda y el ancho sale del aspect del PNG.
  */
 export const PICKUP_TYPES: PickupDef[] = [
-	{ id: "mate", label: "MATEcito Y SEGUIMOS  +3s", w: 17, h: 20, weight: 14, effect: { type: "score", frames: 90 }, variant: "mate" },
-	{ id: "cafe", label: "CAFÉ DE PRODUCCIÓN  x2", w: 16, h: 19, weight: 12, effect: { type: "multiplier", amount: 2, duration: 6 }, variant: "cafe" },
-	{ id: "battery", label: "BATERÍA AL 100%  INVENCIBLE", w: 20, h: 20, weight: 8, effect: { type: "invuln", duration: 3.2 }, variant: "battery" },
-	{ id: "slowmo", label: "CÁMARA LENTA  120 FPS", w: 18, h: 20, weight: 7, effect: { type: "slowmo", duration: 5 }, variant: "slowmo" },
-	{ id: "lut", label: "PROBANDO LUTS  EL COLORISTA SE FUE", w: 24, h: 8, weight: 6, effect: { type: "filters", duration: 9, every: 2 }, variant: "lut" },
+	{ id: "mate", label: "MATEcito Y SEGUIMOS  INVENCIBLE", w: 17, h: 20, weight: 1, effect: { type: "invuln", duration: 3.2 }, variant: "mate" },
+	{ id: "cafe", label: "CAFÉ DE PRODUCCIÓN  x2", w: 16, h: 19, weight: 1, effect: { type: "multiplier", amount: 2, duration: 6 }, variant: "cafe" },
+	{
+		id: "battery",
+		label: "NOS QUEDAMOS SIN BATERÍA, NO SE GRABÓ NADA — A FILMAR OTRA VEZ",
+		w: 20,
+		h: 20,
+		weight: 1,
+		effect: { type: "rewind", duration: 30 },
+		variant: "battery",
+	},
+	{ id: "slowmo", label: "CÁMARA LENTA  120 FPS", w: 18, h: 20, weight: 1, effect: { type: "slowmo", duration: 5 }, variant: "slowmo" },
+	{ id: "lut", label: "PROBANDO LUTS  EL COLORISTA SE FUE", w: 24, h: 8, weight: 1, effect: { type: "filters", duration: 9, every: 2 }, variant: "lut" },
+	{
+		id: "flip",
+		label: "CÁMARA AL REVÉS  GRAVEDAD LOCA",
+		w: 20,
+		h: 20,
+		weight: 1,
+		effect: { type: "gravity_flip", duration: 12 },
+		variant: "flip",
+		stages: ["level5"],
+	},
 ];
 
 /** Filtros que rota el pickup `lut`, en orden */
