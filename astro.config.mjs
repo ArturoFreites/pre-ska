@@ -7,7 +7,7 @@ export default defineConfig({
 	site: 'https://ska.ar',
 	integrations: [
 		sitemap({
-			filter: (page) => !page.includes('/dino-check'),
+			filter: (page) => !page.includes('/dino-check') && !page.includes('/404'),
 		}),
 	],
 });
