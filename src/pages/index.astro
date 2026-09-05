@@ -127,8 +127,15 @@ const structuredData = {
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Montserrat:wght@800&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap"
 			rel="stylesheet"
+		/>
+		<link
+			rel="preload"
+			href="/fonts/montserrat-extrabold-latin.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin
 		/>
 	</head>
 	<body>
@@ -287,6 +294,25 @@ const structuredData = {
 </html>
 
 <style is:global>
+	/* Nombre distinto al sistema/Adobe para forzar el archivo self-hosted (mismo corte ExtraBold) */
+	@font-face {
+		font-family: "Montserrat ExtraBold";
+		font-style: normal;
+		font-weight: 800;
+		font-display: block;
+		src: url("/fonts/montserrat-extrabold-latin-ext.woff2") format("woff2");
+		unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+	}
+
+	@font-face {
+		font-family: "Montserrat ExtraBold";
+		font-style: normal;
+		font-weight: 800;
+		font-display: block;
+		src: url("/fonts/montserrat-extrabold-latin.woff2") format("woff2");
+		unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+	}
+
 	*,
 	*::before,
 	*::after {
@@ -301,7 +327,8 @@ const structuredData = {
 		/* Archivo Black: web font; Arial Black no está en Safari/macOS */
 		--font-black: "Archivo Black", "Arial Black", Arial, sans-serif;
 		--font-arial: Arial, Helvetica, sans-serif;
-		--font-counter: "Montserrat", Arial, sans-serif;
+		/* Self-hosted — mismo nombre que en Photoshop */
+		--font-counter: "Montserrat ExtraBold", sans-serif;
 	}
 
 	html,
@@ -510,7 +537,11 @@ const structuredData = {
 		justify-content: center;
 		gap: 0;
 		margin-top: 0.55rem;
-		font-variant-numeric: tabular-nums;
+		font-family: var(--font-counter);
+		font-weight: 800;
+		font-synthesis: none;
+		font-variant-numeric: lining-nums;
+		-webkit-font-smoothing: antialiased;
 	}
 
 	.unit {
@@ -521,10 +552,10 @@ const structuredData = {
 
 	.value,
 	.sep {
-		font-family: var(--font-counter);
-		font-weight: 800;
+		font-family: inherit;
+		font-weight: inherit;
 		font-size: clamp(1.65rem, 6.5vw, 2.2rem);
-		letter-spacing: -0.07em;
+		letter-spacing: -0.05em;
 		line-height: 0.85;
 	}
 
@@ -575,10 +606,10 @@ const structuredData = {
 
 	.tagline .accent {
 		display: inline-block;
-		width: 0.38em;
-		height: 0.38em;
-		margin-left: 0.12em;
-		margin-bottom: 0.08em;
+		width: 0.22em;
+		height: 0.22em;
+		margin-left: 0.1em;
+		margin-bottom: 0.12em;
 		flex-shrink: 0;
 		background: var(--accent);
 	}
