@@ -91,10 +91,6 @@ const structuredData = {
 			body {
 				background: #111111;
 			}
-			/* Solo durante el flash/loader de F5: B&N detrás del SKA */
-			.bg-media {
-				filter: grayscale(1);
-			}
 		</style>
 		<link rel="icon" type="image/png" href="/favicon-32.png" />
 		<link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
@@ -310,7 +306,6 @@ const structuredData = {
 			desktopBg.addEventListener("change", syncBgVideo);
 
 			const revealHome = () => {
-				bgMedia?.classList.add("is-color");
 				home?.classList.remove("is-waiting");
 				home?.classList.add("is-ready");
 				splash?.classList.add("is-done");
@@ -489,12 +484,6 @@ const structuredData = {
 		pointer-events: none;
 		overflow: hidden;
 		background: #111111 url("/fondo.jpg") center / cover no-repeat;
-		/* B&N solo en el loader; el script lo saca al revelar el home */
-		filter: grayscale(1);
-	}
-
-	.bg-media.is-color {
-		filter: none;
 	}
 
 	.bg-media__video {
