@@ -18,13 +18,22 @@ const igRaw = "https://www.instagram.com/ska.raw/";
 <html lang="es-AR">
 	<head>
 		<meta charset="utf-8" />
+		<style is:inline>
+			html,
+			body {
+				background: #111111;
+			}
+			.bg-media {
+				filter: grayscale(1);
+			}
+		</style>
 		<link rel="icon" type="image/png" href="/favicon-32.png" />
 		<link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<link rel="manifest" href="/site.webmanifest" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
-		<meta name="theme-color" content="#7a0f12" />
+		<meta name="theme-color" content="#111111" />
 		<meta name="color-scheme" content="dark" />
 		<meta name="robots" content="noindex, nofollow" />
 		<meta name="googlebot" content="noindex, nofollow" />
@@ -340,13 +349,13 @@ const igRaw = "https://www.instagram.com/ska.raw/";
 		min-height: 100%;
 		height: 100%;
 		overflow: hidden;
-		background: #7a0f12;
+		background: #111111;
 	}
 
 	body {
 		font-family: var(--font-arial);
 		color: var(--ink);
-		background: #7a0f12;
+		background: #111111;
 		/* Safari: antialiased adelgaza tipografía display en blanco */
 		-webkit-font-smoothing: auto;
 		text-rendering: optimizeLegibility;
@@ -367,6 +376,7 @@ const igRaw = "https://www.instagram.com/ska.raw/";
 		pointer-events: none;
 		overflow: hidden;
 		background: #111111 url("/fondo.jpg") center / cover no-repeat;
+		filter: grayscale(1);
 	}
 
 	.bg-media__video {
