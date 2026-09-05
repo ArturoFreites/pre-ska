@@ -236,9 +236,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	}> = [];
 
 	let wantDuck = false;
-	/** Hold-to-duck desde zona inferior del canvas / botón (sin delay de salto) */
+	/** Hold-to-duck solo desde el botón ↓ (canvas siempre salta al toque) */
 	let pointerDuckActive = false;
-	const DUCK_ZONE_RATIO = 0.58;
 	let prevFocus: HTMLElement | null = null;
 	let scrollLockY = 0;
 
@@ -1937,37 +1936,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		setDuck(false);
 	});
 
-	/**
-	 * Sin lag: salto al toque inmediato.
-	 * Mantener en la zona inferior del canvas = agacharse (desktop + mobile).
-	 */
+	/** Click / tap en el canvas = salto inmediato (desktop y mobile). */
 	on(canvas, "pointerdown", (e) => {
 		if (!open) return;
 		if (typeof e.button === "number" && e.button !== 0) return;
-		try {
-			canvas.setPointerCapture(e.pointerId);
-		} catch {
-			/* ignore */
-		}
-		if (state !== "running") {
-			jump();
-			return;
-		}
-		const rect = canvas.getBoundingClientRect();
-		const localY = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0;
-		if (localY >= DUCK_ZONE_RATIO) {
-			pointerDuckActive = true;
-			setDuck(true);
-			return;
-		}
+		e.preventDefault();
 		jump();
 	});
-	const endCanvasPointer = () => {
-		if (!open) return;
-		clearPointerDuck();
-	};
-	on(canvas, "pointerup", endCanvasPointer);
-	on(canvas, "pointercancel", endCanvasPointer);
 
 	const onClose = () => closeGame();
 	const onRetry = () => startRun();
