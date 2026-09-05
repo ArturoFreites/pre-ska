@@ -91,7 +91,10 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 				</section>
 
 				<footer class="outro">
-					<p class="tagline">hacemos que suceda<span class="accent" aria-hidden="true"></span></p>
+					<p class="tagline">
+						<span class="tagline__line">hacemos que</span>
+						<span class="tagline__line">suceda<span class="accent" aria-hidden="true"></span></span>
+					</p>
 					<button
 						type="button"
 						class="play-egg"
@@ -433,14 +436,20 @@ const ogImage = `${siteUrl}/og-image.jpg`;
 	}
 
 	.tagline {
-		display: inline-flex;
-		align-items: flex-end;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 		font-family: var(--font-black);
 		font-weight: 400;
-		font-size: clamp(1.35rem, 5.2vw, 1.85rem);
-		line-height: 1;
+		font-size: clamp(1.85rem, 7vw, 2.6rem);
+		line-height: 0.92;
 		letter-spacing: -0.06em;
 		text-wrap: balance;
+	}
+
+	.tagline__line {
+		display: inline-flex;
+		align-items: flex-end;
 	}
 
 	.tagline .accent {
