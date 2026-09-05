@@ -367,7 +367,6 @@ export const PICKUP_TYPES: PickupDef[] = [
 		weight: 1,
 		effect: { type: "gravity_flip", duration: 12 },
 		variant: "flip",
-		stages: ["level5"],
 	},
 ];
 

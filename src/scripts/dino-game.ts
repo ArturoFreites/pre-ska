@@ -1622,7 +1622,12 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	function drawDino() {
 		const box = playerBox();
 		const name = currentDinoSprite();
-		const flash = invulnTtl > 0 && Math.floor(performance.now() / 80) % 2 === 0;
+		// Titileo rápido y profundo: si no, el mate invencible no se nota
+		const invulnOn = invulnTtl > 0;
+		const flashOff =
+			invulnOn &&
+			!reduceMotion &&
+			Math.floor(performance.now() / 45) % 2 === 0;
 
 		const airHeight = Math.max(0, groundY - py);
 		drawContactShadow(
@@ -1660,7 +1665,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			ctx.translate(-footX, -footY);
 		}
 
-		if (flash) ctx.globalAlpha = 0.65;
+		if (flashOff) ctx.globalAlpha = 0.12;
+		else if (invulnOn) ctx.globalAlpha = 1;
 		const facingLeft = rewindTtl > 0;
 		if (facingLeft) {
 			ctx.save();
@@ -1677,6 +1683,31 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			if (squash > 0) ctx.restore();
 			pxRect(box.x, box.y, box.w, box.h, SPRITE_PALETTE.primary);
 			return;
+		}
+
+		if (invulnOn && !flashOff) {
+			const cx = dinoRect.x + dinoRect.w * 0.5;
+			const cy = dinoRect.y + dinoRect.h * 0.45;
+			const rx = dinoRect.w * 0.7;
+			const ry = dinoRect.h * 0.58;
+			ctx.save();
+			ctx.globalAlpha = 0.7;
+			ctx.strokeStyle = "#78c8ff";
+			ctx.lineWidth = Math.max(2, 2.8 * scale);
+			ctx.beginPath();
+			ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+			ctx.stroke();
+			ctx.globalAlpha = 0.25;
+			ctx.fillStyle = "#78c8ff";
+			ctx.fill();
+			ctx.restore();
+		} else if (invulnOn && reduceMotion) {
+			ctx.save();
+			ctx.globalAlpha = 0.35;
+			ctx.strokeStyle = "#78c8ff";
+			ctx.lineWidth = Math.max(2, 2.5 * scale);
+			ctx.strokeRect(dinoRect.x - 2, dinoRect.y - 2, dinoRect.w + 4, dinoRect.h + 4);
+			ctx.restore();
 		}
 
 		// Drawn, not a sprite: there is no gaffer-shield PNG in public/game, and
