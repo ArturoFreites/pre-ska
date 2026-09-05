@@ -360,9 +360,9 @@ const accents = pack.paletteHint?.accentMappings ?? {};
 
 export const SPRITE_PALETTE = {
 	primary: pack.paletteHint?.["1"] || pack.recommendedPalette?.["1"] || "#F2F2F2",
-	accent: accents.production || pack.recommendedPalette?.["2"] || "#C9A227",
-	eye: accents.eye || pack.recommendedPalette?.eyeOverride || "#5C0C0E",
-	warm: accents.warmLight || "#FFE08A",
+	accent: "#E95514",
+	eye: "#7A0F12",
+	warm: "#FFB070",
 	post: accents.postCold || "#78C8FF",
 	dim: "#BDBDBD",
 } as const;

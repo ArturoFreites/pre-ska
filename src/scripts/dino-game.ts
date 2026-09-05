@@ -14,7 +14,6 @@ import {
 	GAME_OVER_RARE,
 	SFX_PROFILES,
 	pickWeighted,
-	dinoLevelFor,
 	stageFor,
 	eventsForStage,
 	type ObstacleDef,
@@ -28,8 +27,6 @@ import {
 	resolveSpriteDrawRect,
 	dinoCanvasRect,
 	dinoSpriteRect,
-	gearLayoutRect,
-	MAX_VISIBLE_GEAR,
 	getSpriteLogicalSize,
 	loadPngSprites,
 	dinoSpriteName,
@@ -38,7 +35,6 @@ import {
 	DECOR_SPRITE,
 	DECOR_MODE,
 	BG_SPRITE,
-	GEAR_SPRITE,
 	SPRITE_PALETTE,
 	DINO_LAYOUT_H,
 	DINO_DISPLAY_SCALE,
@@ -207,7 +203,6 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	let deleteNext = false;
 	let eventCooldown = 8;
 	let lastEventId = "";
-	let unlockedLevels = new Set<string>(["base"]);
 	let lastStageId = STAGES[0]!.id;
 	let particles: Array<{
 		x: number;
@@ -520,7 +515,6 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		landSquashTtl = 0;
 		eventCooldown = 6 + Math.random() * 4;
 		lastEventId = "";
-		unlockedLevels = new Set(["base"]);
 		lastStageId = STAGES[0]!.id;
 		clearPowers();
 		startScreen.hidden = false;
@@ -897,21 +891,12 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		}
 	}
 
-	function checkStageAndGear() {
+	function checkStage() {
 		const stage = stageFor(scoreFrames);
 		if (stage.id !== lastStageId) {
 			lastStageId = stage.id;
 			if (stage.enterToast) showToast(stage.enterToast, 2.2);
 			sfx("event");
-		}
-		const level = dinoLevelFor(scoreFrames);
-		if (!unlockedLevels.has(level.id)) {
-			unlockedLevels.add(level.id);
-			if (level.unlockToast) {
-				showToast(level.unlockToast, 2.4);
-				if (level.id === "director" || level.id === "glasses") auraTtl = Math.max(auraTtl, 1.4);
-				sfx("pickup");
-			}
 		}
 	}
 
@@ -957,7 +942,7 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		scrollNear += speed * adt;
 		scrollFar += speed * adt * 0.12;
 
-		checkStageAndGear();
+		checkStage();
 
 		const wasAirborne = !onGround;
 		const g = (wantDuck && !onGround ? GAME_CONFIG.duckGravity : GAME_CONFIG.gravity) * k;
@@ -1300,7 +1285,7 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			pxRect(b.x + 4 * s, b.y + 10 * s, 8 * s, 8 * s, DIM);
 			pxRect(b.x + 24 * s, b.y + 10 * s, 8 * s, 8 * s, DIM);
 		} else if (b.kind === "bondi") {
-			pxRect(b.x, b.y, 70 * s, 36 * s, "#c9a227");
+			pxRect(b.x, b.y, 70 * s, 36 * s, "#e95514");
 			pxRect(b.x + 6 * s, b.y + 6 * s, 14 * s, 10 * s, "#224");
 			pxRect(b.x + 28 * s, b.y + 6 * s, 14 * s, 10 * s, "#224");
 			pxRect(b.x + 50 * s, b.y + 6 * s, 14 * s, 10 * s, "#224");
@@ -1368,18 +1353,6 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			return;
 		}
 
-		if (canvas && !(ducking && onGround)) {
-			const level = dinoLevelFor(scoreFrames);
-			const gearList = auraTtl > 0 ? [...level.gear, "glasses" as const] : level.gear;
-			// Only the newest unlocks: stacking every accessory turns the sprite
-			// into an unreadable pile.
-			const visible = gearList.filter((g) => GEAR_SPRITE[g]).slice(-MAX_VISIBLE_GEAR);
-			for (const g of visible) {
-				const gearRect = gearLayoutRect(canvas, g);
-				if (gearRect) drawGameSpriteRect(ctx, GEAR_SPRITE[g]!, gearRect, "production");
-			}
-		}
-
 		// Drawn, not a sprite: there is no gaffer-shield PNG in public/game, and
 		// the matrix fallback rendered as a speckled box over the character.
 		if (hasShield) {
@@ -1390,7 +1363,7 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 			const pulse = reduceMotion ? 1 : 0.85 + Math.sin(performance.now() / 220) * 0.15;
 			ctx.save();
 			ctx.globalAlpha = 0.35 * pulse;
-			ctx.strokeStyle = "#c9a227";
+			ctx.strokeStyle = "#e95514";
 			ctx.lineWidth = Math.max(2, 2.5 * scale);
 			ctx.setLineDash([9 * scale, 7 * scale]);
 			ctx.lineDashOffset = -(performance.now() / 26) % (16 * scale);
@@ -1441,8 +1414,8 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	/** Every active power gets a chip so the player can tell what a pickup did. */
 	function drawPowerChips() {
 		const chips: Array<[string, string]> = [];
-		if (hasShield) chips.push(["GAFFER", "#c9a227"]);
-		if (multiplier > 1) chips.push([`x${multiplier}`, "#ffe08a"]);
+		if (hasShield) chips.push(["GAFFER", "#e95514"]);
+		if (multiplier > 1) chips.push([`x${multiplier}`, "#ffb070"]);
 		if (invulnTtl > 0) chips.push([`INVENCIBLE ${invulnTtl.toFixed(1)}`, "#78c8ff"]);
 		if (slowMoTtl > 0) chips.push([`SLOW MO ${slowMoTtl.toFixed(1)}`, "#b7a6ff"]);
 		if (filterIndex >= 0) chips.push([FILTER_CYCLE[filterIndex]!.label, "#ff9f6e"]);
@@ -1473,7 +1446,7 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		for (const p of particles) {
 			ctx.globalAlpha = Math.min(1, p.ttl * 2);
 			const s = p.size ?? 3 * scale;
-			pxRect(p.x, p.y, s, s, p.color ?? "#ffe08a");
+			pxRect(p.x, p.y, s, s, p.color ?? "#ffb070");
 		}
 		ctx.globalAlpha = 1;
 	}

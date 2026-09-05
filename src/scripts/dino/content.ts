@@ -105,12 +105,12 @@ export const STAGES: StageDef[] = [
 		id: "pre",
 		label: "PREPRODUCCIÓN",
 		from: 0,
-		bg: "#5c0c0e",
-		sky: "#3a0708",
-		tint: "#7a0f12",
-		tintAlpha: 0.55,
-		ground: "#2a0809",
-		groundLine: "rgba(255,255,255,0.18)",
+		bg: "#6a1012",
+		sky: "#3a0a0c",
+		tint: "#e95514",
+		tintAlpha: 0.28,
+		ground: "#1c1412",
+		groundLine: "rgba(255,255,255,0.2)",
 		grain: 0.035,
 		argBias: 0.06,
 		airBias: 0.18,
@@ -126,12 +126,12 @@ export const STAGES: StageDef[] = [
 		id: "rodaje",
 		label: "RODAJE",
 		from: 450,
-		bg: "#5c0c0e",
-		sky: "#40080a",
-		tint: "#8a1218",
-		tintAlpha: 0.58,
-		ground: "#2a0809",
-		groundLine: "rgba(255,255,255,0.2)",
+		bg: "#7a0f12",
+		sky: "#4a0c0e",
+		tint: "#e95514",
+		tintAlpha: 0.32,
+		ground: "#1e1412",
+		groundLine: "rgba(255,255,255,0.22)",
 		grain: 0.04,
 		argBias: 0.1,
 		airBias: 0.26,
@@ -149,11 +149,11 @@ export const STAGES: StageDef[] = [
 		label: "EXTERIOR / CALLE",
 		from: 900,
 		bg: "#4a1810",
-		sky: "#7a2c14",
-		tint: "#a84828",
-		tintAlpha: 0.42,
-		ground: "#2c1410",
-		groundLine: "rgba(255,220,180,0.22)",
+		sky: "#8a3018",
+		tint: "#e95514",
+		tintAlpha: 0.36,
+		ground: "#241612",
+		groundLine: "rgba(255,200,160,0.24)",
 		grain: 0.05,
 		argBias: 0.32,
 		airBias: 0.22,
@@ -238,10 +238,10 @@ export const STAGES: StageDef[] = [
 		from: 5000,
 		bg: "#1a0a12",
 		sky: "#2a0a1c",
-		tint: "#7a0f12",
-		tintAlpha: 0.48,
-		ground: "#14080c",
-		groundLine: "rgba(255,224,138,0.28)",
+		tint: "#e95514",
+		tintAlpha: 0.42,
+		ground: "#161012",
+		groundLine: "rgba(255,160,100,0.3)",
 		grain: 0.055,
 		argBias: 0.1,
 		airBias: 0.3,
@@ -457,28 +457,6 @@ export const GAME_OVER_RARE = {
 	sub: "HABÍA QUE GRABARLO VERTICAL",
 } as const;
 
-export type DinoGear = "camera" | "vest" | "glasses" | "megaphone" | "clapper" | "mate";
-
-export interface DinoLevel {
-	from: number;
-	id: string;
-	gear: DinoGear[];
-	unlockToast?: string;
-}
-
-export const DINO_LEVELS: DinoLevel[] = [
-	{ from: 0, id: "base", gear: ["camera"] },
-	{ from: 500, id: "vest", gear: ["camera", "vest"], unlockToast: "CHALECO DE PRODUCCIÓN" },
-	{ from: 1200, id: "mate", gear: ["camera", "vest", "mate"], unlockToast: "MATE EN MANO" },
-	{ from: 2500, id: "glasses", gear: ["camera", "vest", "mate", "glasses"], unlockToast: "LOOK DE DIRECCIÓN" },
-	{
-		from: 4000,
-		id: "director",
-		gear: ["camera", "vest", "mate", "glasses", "megaphone"],
-		unlockToast: "AURA DE DIRECTOR +9999",
-	},
-];
-
 export function pickWeighted<T extends { weight: number }>(list: readonly T[]): T {
 	const total = list.reduce((s, i) => s + i.weight, 0);
 	let r = Math.random() * total;
@@ -487,14 +465,6 @@ export function pickWeighted<T extends { weight: number }>(list: readonly T[]): 
 		if (r <= 0) return item;
 	}
 	return list[list.length - 1]!;
-}
-
-export function dinoLevelFor(score: number): DinoLevel {
-	let cur = DINO_LEVELS[0]!;
-	for (const l of DINO_LEVELS) {
-		if (score >= l.from) cur = l;
-	}
-	return cur;
 }
 
 export function stageFor(frames: number): StageDef {

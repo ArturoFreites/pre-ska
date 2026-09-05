@@ -15,9 +15,6 @@
 				dinoCanvasRect,
 				dinoSpriteRect,
 				drawGameSpriteRect,
-				gearLayoutRect,
-				MAX_VISIBLE_GEAR,
-				GEAR_SPRITE,
 				DINO_LAYOUT_H,
 				DINO_DISPLAY_SCALE,
 			} from "../scripts/dino/sprites";
@@ -29,14 +26,8 @@
 			const scale = 6;
 			const standH = DINO_LAYOUT_H * scale * DINO_DISPLAY_SCALE;
 			const groundY = 540;
-			const allGear = ["vest", "mate", "glasses", "megaphone"];
 
-			const poses = [
-				{ name: "dino-run-1.png", gear: [] as string[] },
-				{ name: "dino-run-1.png", gear: allGear },
-				{ name: "dino-jump.png", gear: allGear },
-				{ name: "dino-duck.png", gear: [] as string[] },
-			];
+			const poses = ["dino-run-1.png", "dino-run-2.png", "dino-jump.png", "dino-duck.png"];
 
 			ctx.imageSmoothingEnabled = false;
 			ctx.strokeStyle = "#3f6";
@@ -45,16 +36,12 @@
 			ctx.lineTo(1960, groundY);
 			ctx.stroke();
 
-			poses.forEach((pose, i) => {
+			poses.forEach((name, i) => {
 				const x = 60 + i * 470;
 				const box = { x, y: groundY - standH, w: standH * 0.92, h: standH };
 				const cv = dinoCanvasRect(box.x, box.y, box.w, box.h)!;
-				const rect = dinoSpriteRect(pose.name, cv)!;
-				drawGameSpriteRect(ctx, pose.name, rect, "dino");
-				for (const g of pose.gear.slice(-MAX_VISIBLE_GEAR)) {
-					const gRect = gearLayoutRect(cv, g);
-					if (gRect) drawGameSpriteRect(ctx, GEAR_SPRITE[g]!, gRect, "production");
-				}
+				const rect = dinoSpriteRect(name, cv)!;
+				drawGameSpriteRect(ctx, name, rect, "dino");
 				ctx.strokeStyle = "rgba(0,190,255,0.9)";
 				ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
 			});
