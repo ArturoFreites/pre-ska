@@ -214,6 +214,20 @@
 		color: var(--dino-ink);
 		text-shadow: 0 3px 18px rgba(0, 0, 0, 0.75);
 		pointer-events: none;
+		transition:
+			top 0.35s ease,
+			bottom 0.35s ease;
+	}
+
+	/* En espejo el piso está arriba: textos abajo para no tapar la acción */
+	.dino.is-flipped .dino__hud {
+		top: auto;
+		bottom: max(5.5rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem));
+	}
+
+	.dino.is-flipped .dino__toast {
+		top: auto;
+		bottom: max(clamp(5.5rem, 18vh, 10rem), calc(env(safe-area-inset-bottom, 0px) + 5rem));
 	}
 
 	@keyframes dino-toast-in {

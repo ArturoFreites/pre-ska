@@ -205,7 +205,14 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	let letterboxTtl = 0;
 	let slowMoTtl = 0;
 	let rewindTtl = 0;
-	let gravityFlipTtl = 0;
+	/** Tiempo a espejo completo (sin contar entrada/salida) */
+	let gravityFlipHold = 0;
+	let gravityFlipInTtl = 0;
+	let gravityFlipOutTtl = 0;
+	/** 0 = normal, 1 = espejado del todo */
+	let gravityFlipBlend = 0;
+	const GRAVITY_FLIP_IN = 0.65;
+	const GRAVITY_FLIP_OUT = 0.55;
 	let auraTtl = 0;
 	let argentinaTtl = 0;
 	let reelsTtl = 0;
@@ -388,6 +395,56 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		}
 	}
 
+	function smoothstep(t: number) {
+		const x = Math.max(0, Math.min(1, t));
+		return x * x * (3 - 2 * x);
+	}
+
+	/** Activo si hay transición o hold del espejo */
+	function gravityFlipActive() {
+		return gravityFlipHold > 0 || gravityFlipInTtl > 0 || gravityFlipOutTtl > 0 || gravityFlipBlend > 0.001;
+	}
+
+	function beginGravityFlip(duration: number) {
+		if (reduceMotion) {
+			gravityFlipInTtl = 0;
+			gravityFlipOutTtl = 0;
+			gravityFlipBlend = 1;
+			gravityFlipHold = Math.max(gravityFlipHold, duration);
+			syncFlipHud();
+			return;
+		}
+		// Ya espejado: solo alarga el tramo jugable
+		if (gravityFlipInTtl <= 0 && gravityFlipOutTtl <= 0 && gravityFlipBlend >= 0.99) {
+			gravityFlipHold = Math.max(gravityFlipHold, duration);
+			return;
+		}
+		// Saliendo: cancelar salida y volver al hold
+		if (gravityFlipOutTtl > 0) {
+			gravityFlipOutTtl = 0;
+			gravityFlipBlend = 1;
+			gravityFlipHold = Math.max(gravityFlipHold, duration);
+			invulnTtl = Math.max(invulnTtl, 0.4);
+			syncFlipHud();
+			return;
+		}
+		// Entrando: solo alarga el hold que arranca al terminar la transición
+		if (gravityFlipInTtl > 0) {
+			gravityFlipHold = Math.max(gravityFlipHold, duration);
+			return;
+		}
+		// Entrada suave: el mundo se voltea antes del tramo jugable
+		gravityFlipHold = duration;
+		gravityFlipInTtl = GRAVITY_FLIP_IN;
+		invulnTtl = Math.max(invulnTtl, GRAVITY_FLIP_IN + 0.35);
+		syncFlipHud();
+	}
+
+	/** Baja HUD/toasts en DOM para no tapar el piso (arriba) en espejo */
+	function syncFlipHud() {
+		root.classList.toggle("is-flipped", gravityFlipActive());
+	}
+
 	/** Caja lógica del personaje de pie — de ella sale el canvas compartido */
 	function standBox() {
 		const h = standHeight();
@@ -568,7 +625,10 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		letterboxTtl = 0;
 		slowMoTtl = 0;
 		rewindTtl = 0;
-		gravityFlipTtl = 0;
+		gravityFlipHold = 0;
+		gravityFlipInTtl = 0;
+		gravityFlipOutTtl = 0;
+		gravityFlipBlend = 0;
 		auraTtl = 0;
 		argentinaTtl = 0;
 		reelsTtl = 0;
@@ -581,6 +641,7 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		bgProps = [];
 		pickups = [];
 		syncPlayerLane();
+		syncFlipHud();
 	}
 
 	function resetRun() {
@@ -835,7 +896,7 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 				beginRewind(e.duration);
 				break;
 			case "gravity_flip":
-				gravityFlipTtl = Math.max(gravityFlipTtl, e.duration);
+				beginGravityFlip(e.duration);
 				break;
 			case "filters":
 				filterTtl = e.duration;
@@ -1034,7 +1095,31 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		const wasRewinding = rewindTtl > 0;
 		rewindTtl = decay(rewindTtl);
 		if (wasRewinding && rewindTtl <= 0) endRewind();
-		gravityFlipTtl = decay(gravityFlipTtl);
+		// Espejo: entrada → hold → salida (blend 0↔1)
+		if (gravityFlipInTtl > 0) {
+			gravityFlipInTtl = Math.max(0, gravityFlipInTtl - dt);
+			const t = 1 - gravityFlipInTtl / GRAVITY_FLIP_IN;
+			gravityFlipBlend = smoothstep(t);
+			if (gravityFlipInTtl <= 0) gravityFlipBlend = 1;
+		} else if (gravityFlipHold > 0) {
+			gravityFlipHold = Math.max(0, gravityFlipHold - dt);
+			gravityFlipBlend = 1;
+			if (gravityFlipHold <= 0) {
+				if (reduceMotion) {
+					gravityFlipBlend = 0;
+				} else {
+					gravityFlipOutTtl = GRAVITY_FLIP_OUT;
+					invulnTtl = Math.max(invulnTtl, GRAVITY_FLIP_OUT);
+				}
+			}
+		} else if (gravityFlipOutTtl > 0) {
+			gravityFlipOutTtl = Math.max(0, gravityFlipOutTtl - dt);
+			gravityFlipBlend = smoothstep(gravityFlipOutTtl / GRAVITY_FLIP_OUT);
+			if (gravityFlipOutTtl <= 0) gravityFlipBlend = 0;
+		} else {
+			gravityFlipBlend = 0;
+		}
+		syncFlipHud();
 		auraTtl = decay(auraTtl);
 		argentinaTtl = decay(argentinaTtl);
 		reelsTtl = decay(reelsTtl);
@@ -1754,7 +1839,7 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		if (renderBarTtl > 0) {
 			const bw = Math.min(220, W * 0.4);
 			const bx = W * 0.5 - bw / 2;
-			const by = H * 0.22;
+			const by = gravityFlipActive() ? H * 0.72 : H * 0.22;
 			ctx.fillStyle = "rgba(0,0,0,0.45)";
 			ctx.fillRect(bx - 8, by - 18, bw + 16, 28);
 			ctx.fillStyle = INK;
@@ -1775,7 +1860,15 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		if (multiplier > 1) chips.push([`x${multiplier}`, "#ffb070"]);
 		if (invulnTtl > 0) chips.push([`INVENCIBLE ${invulnTtl.toFixed(1)}`, "#78c8ff"]);
 		if (rewindTtl > 0) chips.push([`REVERSA ${Math.ceil(rewindTtl)}s`, "#ff6b6b"]);
-		if (gravityFlipTtl > 0) chips.push([`INVERTIDO ${Math.ceil(gravityFlipTtl)}s`, "#7dffb3"]);
+		if (gravityFlipActive()) {
+			const secs =
+				gravityFlipHold > 0
+					? Math.ceil(gravityFlipHold)
+					: gravityFlipInTtl > 0
+						? Math.ceil(gravityFlipHold + gravityFlipInTtl)
+						: Math.ceil(gravityFlipOutTtl);
+			chips.push([`INVERTIDO ${Math.max(1, secs)}s`, "#7dffb3"]);
+		}
 		if (slowMoTtl > 0) chips.push([`SLOW MO ${slowMoTtl.toFixed(1)}`, "#b7a6ff"]);
 		if (filterIndex >= 0) chips.push([FILTER_CYCLE[filterIndex]!.label, "#ff9f6e"]);
 		if (easeTtl > 0 && easeFactor < 1) chips.push(["PRESUPUESTO OK", "#8ef0a4"]);
@@ -1787,8 +1880,12 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		const padX = 7 * scale;
 		const chipH = 17 * scale;
 		const gap = 6 * scale;
-		let y = 46 * scale;
 		const right = W - 12 - (isTouch || W < 720 ? 56 : 12);
+		// En espejo el piso está arriba: chips abajo para no tapar la acción
+		const flippedHud = gravityFlipActive();
+		let y = flippedHud
+			? H - 28 * scale - chips.length * (chipH + gap)
+			: 46 * scale;
 		for (const [text, color] of chips) {
 			const w = ctx.measureText(text).width + padX * 2;
 			ctx.fillStyle = "rgba(0,0,0,0.45)";
@@ -1817,12 +1914,12 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	}
 
 	function render() {
-		const flipped = gravityFlipTtl > 0;
+		const flipT = gravityFlipBlend;
 		ctx.save();
-		if (flipped) {
-			// Espejo vertical: el piso lógico queda arriba (estilo Geometry Dash)
-			ctx.translate(0, H);
-			ctx.scale(1, -1);
+		if (flipT > 0.001) {
+			// Volteo vertical progresivo: 0 = normal → 0.5 = aplastado → 1 = espejo
+			ctx.translate(0, H * flipT);
+			ctx.scale(1, 1 - 2 * flipT);
 		}
 		clear();
 		for (const b of bgProps) drawBgProp(b);
