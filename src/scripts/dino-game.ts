@@ -2084,11 +2084,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	const duckDown = (e: Event) => {
 		e.preventDefault();
 		e.stopPropagation();
-		const pe = e as PointerEvent;
-		try {
-			btnDuck.setPointerCapture(pe.pointerId);
-		} catch {
-			/* ignore */
+		window.getSelection()?.removeAllRanges();
+		if ("pointerId" in e) {
+			try {
+				btnDuck.setPointerCapture((e as PointerEvent).pointerId);
+			} catch {
+				/* ignore */
+			}
 		}
 		pointerDuckActive = true;
 		setDuck(true);
@@ -2097,6 +2099,11 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		e.preventDefault();
 		e.stopPropagation();
 		clearPointerDuck();
+	};
+	/** iOS Safari long-press otherwise selects UI text and steals taps from jump. */
+	const blockSelect = (e: Event) => {
+		e.preventDefault();
+		e.stopPropagation();
 	};
 
 	btnClose.addEventListener("click", onClose);
@@ -2107,6 +2114,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 	btnDuck.addEventListener("pointerup", duckUp);
 	btnDuck.addEventListener("pointerleave", duckUp);
 	btnDuck.addEventListener("pointercancel", duckUp);
+	btnDuck.addEventListener("touchstart", duckDown, { passive: false });
+	btnDuck.addEventListener("touchend", duckUp, { passive: false });
+	btnDuck.addEventListener("touchcancel", duckUp, { passive: false });
+	btnDuck.addEventListener("contextmenu", blockSelect);
+	btnDuck.addEventListener("selectstart", blockSelect);
+	root.addEventListener("contextmenu", blockSelect);
+	root.addEventListener("selectstart", blockSelect);
 	listeners.push(() => {
 		btnClose.removeEventListener("click", onClose);
 		btnBack.removeEventListener("click", onClose);
@@ -2116,6 +2130,13 @@ export function mountDinoGame(root: HTMLElement): DinoGameApi {
 		btnDuck.removeEventListener("pointerup", duckUp);
 		btnDuck.removeEventListener("pointerleave", duckUp);
 		btnDuck.removeEventListener("pointercancel", duckUp);
+		btnDuck.removeEventListener("touchstart", duckDown);
+		btnDuck.removeEventListener("touchend", duckUp);
+		btnDuck.removeEventListener("touchcancel", duckUp);
+		btnDuck.removeEventListener("contextmenu", blockSelect);
+		btnDuck.removeEventListener("selectstart", blockSelect);
+		root.removeEventListener("contextmenu", blockSelect);
+		root.removeEventListener("selectstart", blockSelect);
 	});
 
 	void loadPngSprites();
