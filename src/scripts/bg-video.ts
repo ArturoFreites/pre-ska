@@ -151,6 +151,8 @@ export const mountBgVideo = (
 		playing = true;
 		video.classList.remove("is-still");
 		hardenVideoEl(video);
+		// No interceptar toques mientras reproduce (evita que se trabe al tocar).
+		unbindGestureUnlock();
 	};
 
 	const paintFirstFrame = async (token: number) => {
@@ -167,6 +169,7 @@ export const mountBgVideo = (
 			if (disposed || token !== syncToken) return;
 			captureFrameToBackground(video, bgMedia);
 			keepStill();
+			if (!reduceMotion) bindGestureUnlock();
 		})();
 
 		try {
@@ -179,13 +182,19 @@ export const mountBgVideo = (
 	const onPlaying = () => revealPlaying();
 
 	const onPause = () => {
-		if (disposed || reduceMotion || document.hidden) {
+		if (disposed || reduceMotion) {
 			keepStill();
+			return;
+		}
+		// Tab oculta: no pelear con el SO; al volver visibilitychange reintenta.
+		if (document.hidden) {
+			playing = false;
 			return;
 		}
 		window.clearTimeout(pauseRetryId);
 		pauseRetryId = window.setTimeout(() => {
 			if (disposed || document.hidden || !video.paused) return;
+			playing = false;
 			void tryPlay(video).then((ok) => {
 				if (ok) {
 					revealPlaying();
@@ -201,12 +210,15 @@ export const mountBgVideo = (
 
 	const unlockAndPlay = () => {
 		if (disposed || reduceMotion) return;
+		// Ya reproduce: ignorar el gesto (no pause/play).
+		if (playing || !video.paused) return;
 		hardenVideoEl(video);
-		// Stay in still mode until `playing` fires — avoid chrome flash on tap.
-		keepStill();
 		void tryPlay(video).then((ok) => {
-			if (ok) revealPlaying();
-			else void paintFirstFrame(syncToken);
+			if (ok) {
+				revealPlaying();
+				return;
+			}
+			void paintFirstFrame(syncToken);
 		});
 	};
 
