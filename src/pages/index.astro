@@ -183,6 +183,8 @@ const structuredData = {
 				playsinline
 				webkit-playsinline
 				preload="auto"
+				disablepictureinpicture
+				controlslist="nodownload nofullscreen noremoteplayback"
 				poster="/fondo.jpg"
 				data-src-mobile="/fondo-mobile.mp4"
 				data-src-desktop="/fondo-desktop.mp4"
@@ -465,6 +467,27 @@ const structuredData = {
 		height: 100%;
 		object-fit: cover;
 		object-position: center;
+		pointer-events: none;
+		-webkit-appearance: none;
+		appearance: none;
+	}
+
+	/* Oculta el botón play/pause nativo de iOS / Instagram WebView */
+	.bg-media__video.is-still {
+		opacity: 0;
+	}
+
+	.bg-media__video::-webkit-media-controls,
+	.bg-media__video::-webkit-media-controls-enclosure,
+	.bg-media__video::-webkit-media-controls-panel,
+	.bg-media__video::-webkit-media-controls-start-playback-button,
+	.bg-media__video::-webkit-media-controls-overlay-play-button {
+		display: none !important;
+		-webkit-appearance: none !important;
+		opacity: 0 !important;
+		width: 0 !important;
+		height: 0 !important;
+		pointer-events: none !important;
 	}
 
 	.splash {
