@@ -1,7 +1,8 @@
 /**
  * Background video for iOS / Instagram WebViews.
- * When autoplay is blocked (e.g. Low Power Mode), show the first decoded
- * frame as a still (no native play/pause chrome) and start on first tap.
+ * Always uses the video (and its first frame as still). Never shows the old
+ * SKA poster art. The <video> stays hidden until `playing` so native play
+ * chrome cannot flash on reload / Low Power Mode.
  */
 
 type BgVideoOptions = {
@@ -12,6 +13,7 @@ type BgVideoOptions = {
 const hardenVideoEl = (video: HTMLVideoElement) => {
 	video.controls = false;
 	video.removeAttribute("controls");
+	video.removeAttribute("poster");
 	video.muted = true;
 	video.defaultMuted = true;
 	video.loop = true;
@@ -19,7 +21,6 @@ const hardenVideoEl = (video: HTMLVideoElement) => {
 	video.setAttribute("muted", "");
 	video.setAttribute("playsinline", "");
 	video.setAttribute("webkit-playsinline", "");
-	video.setAttribute("autoplay", "");
 	video.disablePictureInPicture = true;
 	video.setAttribute("disablepictureinpicture", "");
 	video.setAttribute("controlslist", "nodownload nofullscreen noremoteplayback");
@@ -42,8 +43,8 @@ const tryPlay = async (video: HTMLVideoElement): Promise<boolean> => {
 	}
 };
 
-const waitForCanPlay = (video: HTMLVideoElement, timeoutMs = 8000): Promise<void> => {
-	if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+const waitForCanPlay = (video: HTMLVideoElement, timeoutMs = 10000): Promise<void> => {
+	if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
 		return Promise.resolve();
 	}
 
@@ -66,7 +67,6 @@ const waitForCanPlay = (video: HTMLVideoElement, timeoutMs = 8000): Promise<void
 	});
 };
 
-/** Paint current video frame into the container background (no native chrome). */
 const captureFrameToBackground = (
 	video: HTMLVideoElement,
 	bgMedia: HTMLElement | null,
@@ -83,9 +83,9 @@ const captureFrameToBackground = (
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 		ctx.drawImage(video, 0, 0, w, h);
-		bgMedia.style.backgroundImage = `url("${canvas.toDataURL("image/jpeg", 0.82)}")`;
+		bgMedia.style.backgroundImage = `url("${canvas.toDataURL("image/jpeg", 0.85)}")`;
 	} catch {
-		/* tainted / not ready — keep existing poster */
+		/* not ready */
 	}
 };
 
@@ -109,7 +109,6 @@ const seekToFirstFrame = (video: HTMLVideoElement): Promise<void> => {
 		video.addEventListener("seeked", onSeeked, { once: true });
 		try {
 			const t = video.currentTime;
-			// Nudge decode of frame 0 without relying on play().
 			video.currentTime = t > 0.01 ? 0 : 0.001;
 		} catch {
 			done();
@@ -133,22 +132,29 @@ export const mountBgVideo = (
 	let syncToken = 0;
 	let gestureBound = false;
 	let playing = false;
-	let showingStill = false;
-	let watchdogId = 0;
 	let pauseRetryId = 0;
 	let stillInFlight: Promise<void> | null = null;
 
-	const setStillMode = (on: boolean) => {
-		showingStill = on;
-		video.classList.toggle("is-still", on);
+	/** Video stays invisible until we confirm playback — kills native play chrome. */
+	const keepStill = () => {
+		playing = false;
+		video.classList.add("is-still");
 		hardenVideoEl(video);
-		if (on) {
+		try {
 			video.pause();
+		} catch {
+			/* ignore */
 		}
 	};
 
-	const showFirstFrameStill = async (token: number) => {
-		if (disposed || token !== syncToken || reduceMotion) return;
+	const revealPlaying = () => {
+		playing = true;
+		video.classList.remove("is-still");
+		hardenVideoEl(video);
+	};
+
+	const paintFirstFrame = async (token: number) => {
+		if (disposed || token !== syncToken) return;
 		if (stillInFlight) {
 			await stillInFlight;
 			return;
@@ -156,10 +162,11 @@ export const mountBgVideo = (
 
 		stillInFlight = (async () => {
 			hardenVideoEl(video);
+			keepStill();
 			await seekToFirstFrame(video);
 			if (disposed || token !== syncToken) return;
 			captureFrameToBackground(video, bgMedia);
-			setStillMode(true);
+			keepStill();
 		})();
 
 		try {
@@ -169,35 +176,24 @@ export const mountBgVideo = (
 		}
 	};
 
-	const markPlaying = () => {
-		playing = true;
-		setStillMode(false);
-	};
-
-	const markPaused = () => {
-		playing = false;
-	};
-
-	const onPlaying = () => markPlaying();
-
-	const schedulePauseRetry = () => {
-		window.clearTimeout(pauseRetryId);
-		if (disposed || reduceMotion || document.hidden) return;
-		pauseRetryId = window.setTimeout(() => {
-			if (disposed || reduceMotion || document.hidden || !video.paused) return;
-			void tryPlay(video).then((ok) => {
-				if (ok) {
-					markPlaying();
-					return;
-				}
-				void showFirstFrameStill(syncToken);
-			});
-		}, 120);
-	};
+	const onPlaying = () => revealPlaying();
 
 	const onPause = () => {
-		markPaused();
-		schedulePauseRetry();
+		if (disposed || reduceMotion || document.hidden) {
+			keepStill();
+			return;
+		}
+		window.clearTimeout(pauseRetryId);
+		pauseRetryId = window.setTimeout(() => {
+			if (disposed || document.hidden || !video.paused) return;
+			void tryPlay(video).then((ok) => {
+				if (ok) {
+					revealPlaying();
+					return;
+				}
+				void paintFirstFrame(syncToken);
+			});
+		}, 100);
 	};
 
 	video.addEventListener("playing", onPlaying);
@@ -206,12 +202,11 @@ export const mountBgVideo = (
 	const unlockAndPlay = () => {
 		if (disposed || reduceMotion) return;
 		hardenVideoEl(video);
+		// Stay in still mode until `playing` fires — avoid chrome flash on tap.
+		keepStill();
 		void tryPlay(video).then((ok) => {
-			if (ok) {
-				markPlaying();
-				return;
-			}
-			void showFirstFrameStill(syncToken);
+			if (ok) revealPlaying();
+			else void paintFirstFrame(syncToken);
 		});
 	};
 
@@ -233,47 +228,23 @@ export const mountBgVideo = (
 		document.removeEventListener("click", onGesture, true);
 	};
 
-	const startWatchdog = () => {
-		window.clearInterval(watchdogId);
-		if (reduceMotion) return;
-		watchdogId = window.setInterval(() => {
-			if (disposed || document.hidden) return;
-			if (!video.src || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
-			if (!video.paused) {
-				markPlaying();
-				return;
-			}
-			// Stay on still frame — do not keep calling play() (avoids native chrome flashes).
-			if (!showingStill) void showFirstFrameStill(syncToken);
-		}, 2500);
-	};
-
-	const stopWatchdog = () => {
-		window.clearInterval(watchdogId);
-		watchdogId = 0;
-	};
-
 	const attemptPlayWithRetries = async (token: number) => {
+		keepStill();
 		await waitForCanPlay(video);
 		if (disposed || token !== syncToken) return;
 
-		if (await tryPlay(video)) {
-			markPlaying();
-			return;
-		}
+		// Always paint the real first frame before any visible playback.
+		await paintFirstFrame(token);
+		if (disposed || token !== syncToken) return;
 
-		// Autoplay blocked: show first frame without native play icon.
-		await showFirstFrameStill(token);
+		if (reduceMotion) return;
 
-		for (const delay of [400, 1200, 3000]) {
-			await new Promise((r) => window.setTimeout(r, delay));
-			if (disposed || token !== syncToken) return;
-			if (!video.paused) {
-				markPlaying();
-				return;
-			}
+		for (const delay of [0, 300, 900, 2000, 4000]) {
+			if (delay) await new Promise((r) => window.setTimeout(r, delay));
+			if (disposed || token !== syncToken || playing) return;
+			keepStill();
 			if (await tryPlay(video)) {
-				markPlaying();
+				revealPlaying();
 				return;
 			}
 		}
@@ -286,52 +257,47 @@ export const mountBgVideo = (
 		const nextSrc = desktop
 			? (video.dataset.srcDesktop ?? "/fondo-desktop.mp4")
 			: (video.dataset.srcMobile ?? "/fondo-mobile.mp4");
-		const nextPoster = desktop
-			? (video.dataset.posterDesktop ?? "/fondo-desktop.jpg")
-			: (video.dataset.posterMobile ?? "/fondo.jpg");
 
 		if (bgMedia) {
-			bgMedia.style.backgroundImage = `url("${nextPoster}")`;
+			bgMedia.style.backgroundColor = "#000";
 		}
-		video.poster = nextPoster;
-		hardenVideoEl(video);
 
-		if (reduceMotion) {
-			video.pause();
-			video.removeAttribute("autoplay");
-			video.removeAttribute("src");
-			video.load();
-			setStillMode(false);
-			unbindGestureUnlock();
-			stopWatchdog();
-			return;
-		}
+		hardenVideoEl(video);
+		keepStill();
 
 		const srcChanged = video.dataset.activeSrc !== nextSrc;
 		if (srcChanged) {
-			markPaused();
-			setStillMode(false);
+			playing = false;
 			syncToken += 1;
 			video.dataset.activeSrc = nextSrc;
 			video.src = nextSrc;
 			video.load();
+			if (bgMedia) bgMedia.style.backgroundImage = "none";
+		}
+
+		if (reduceMotion) {
+			video.removeAttribute("autoplay");
+			unbindGestureUnlock();
+			void attemptPlayWithRetries(syncToken);
+			return;
 		}
 
 		bindGestureUnlock();
-		startWatchdog();
 		void attemptPlayWithRetries(syncToken);
 	};
 
 	const onVisibility = () => {
-		if (disposed || reduceMotion || document.hidden) return;
+		if (disposed || document.hidden) return;
 		if (video.paused) void attemptPlayWithRetries(syncToken);
 	};
 
 	const onPageShow = () => {
-		if (disposed || reduceMotion) return;
+		if (disposed) return;
 		if (video.paused) void attemptPlayWithRetries(syncToken);
 	};
 
+	// First paint: never show the <video> node (avoids play icon on F5).
+	keepStill();
 	syncBgVideo();
 	desktopBg.addEventListener("change", syncBgVideo);
 	document.addEventListener("visibilitychange", onVisibility);
@@ -340,7 +306,6 @@ export const mountBgVideo = (
 	return () => {
 		disposed = true;
 		unbindGestureUnlock();
-		stopWatchdog();
 		window.clearTimeout(pauseRetryId);
 		video.removeEventListener("playing", onPlaying);
 		video.removeEventListener("pause", onPause);

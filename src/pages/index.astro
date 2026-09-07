@@ -91,6 +91,10 @@ const structuredData = {
 			body {
 				background: #000000;
 			}
+			.bg-media__video.is-still {
+				opacity: 0 !important;
+				visibility: hidden !important;
+			}
 		</style>
 		<link rel="icon" type="image/png" href="/favicon-32.png" />
 		<link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
@@ -176,8 +180,7 @@ const structuredData = {
 		<div class="bg-media" aria-hidden="true">
 			<video
 				id="bg-video"
-				class="bg-media__video"
-				autoplay
+				class="bg-media__video is-still"
 				muted
 				loop
 				playsinline
@@ -185,11 +188,8 @@ const structuredData = {
 				preload="auto"
 				disablepictureinpicture
 				controlslist="nodownload nofullscreen noremoteplayback"
-				poster="/fondo.jpg"
 				data-src-mobile="/fondo-mobile.mp4"
 				data-src-desktop="/fondo-desktop.mp4"
-				data-poster-mobile="/fondo.jpg"
-				data-poster-desktop="/fondo-desktop.jpg"
 			></video>
 		</div>
 
@@ -457,7 +457,11 @@ const structuredData = {
 		z-index: 0;
 		pointer-events: none;
 		overflow: hidden;
-		background: var(--chrome) url("/fondo.jpg") center / cover no-repeat;
+		background-color: var(--chrome);
+		background-image: none;
+		background-position: center;
+		background-size: cover;
+		background-repeat: no-repeat;
 	}
 
 	.bg-media__video {
@@ -472,9 +476,10 @@ const structuredData = {
 		appearance: none;
 	}
 
-	/* Oculta el botón play/pause nativo de iOS / Instagram WebView */
+	/* Oculto hasta `playing`: evita el botón play nativo (F5 / Low Power Mode) */
 	.bg-media__video.is-still {
-		opacity: 0;
+		opacity: 0 !important;
+		visibility: hidden !important;
 	}
 
 	.bg-media__video::-webkit-media-controls,
@@ -863,10 +868,6 @@ const structuredData = {
 	}
 
 	@media (min-width: 768px) {
-		.bg-media {
-			background-image: url("/fondo-desktop.jpg");
-		}
-
 		.content {
 			max-width: 40rem;
 			/* Menos padding → más aire entre logo / fecha / slogan */
@@ -914,10 +915,6 @@ const structuredData = {
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.bg-media__video {
-			display: none;
-		}
-
 		.splash,
 		.splash-logo,
 		.stage.is-ready .brand,
