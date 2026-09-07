@@ -61,7 +61,8 @@ const pageDescription = "Esta página no existe.";
 				muted
 				loop
 				playsinline
-				preload="metadata"
+				webkit-playsinline
+				preload="auto"
 				poster="/fondo.jpg"
 				data-src-mobile="/fondo-mobile.mp4"
 				data-src-desktop="/fondo-desktop.mp4"
@@ -92,48 +93,13 @@ const pageDescription = "Esta página no existe.";
 		</main>
 
 		<script>
+			import { mountBgVideo } from "../scripts/bg-video";
+
 			const bgVideo = document.getElementById("bg-video") as HTMLVideoElement | null;
 			const bgMedia = document.querySelector<HTMLElement>(".bg-media");
 			const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-			const desktopBg = window.matchMedia("(min-width: 768px)");
 
-			const syncBgVideo = () => {
-				if (!bgVideo) return;
-
-				const desktop = desktopBg.matches;
-				const nextSrc = desktop
-					? (bgVideo.dataset.srcDesktop ?? "/fondo-desktop.mp4")
-					: (bgVideo.dataset.srcMobile ?? "/fondo-mobile.mp4");
-				const nextPoster = desktop
-					? (bgVideo.dataset.posterDesktop ?? "/fondo-desktop.jpg")
-					: (bgVideo.dataset.posterMobile ?? "/fondo.jpg");
-
-				if (bgMedia) {
-					bgMedia.style.backgroundImage = `url("${nextPoster}")`;
-				}
-				bgVideo.poster = nextPoster;
-
-				if (reduceMotion) {
-					bgVideo.pause();
-					bgVideo.removeAttribute("autoplay");
-					bgVideo.removeAttribute("src");
-					bgVideo.load();
-					return;
-				}
-
-				if (bgVideo.dataset.activeSrc !== nextSrc) {
-					bgVideo.dataset.activeSrc = nextSrc;
-					bgVideo.src = nextSrc;
-					bgVideo.load();
-				}
-
-				void bgVideo.play().catch(() => {
-					/* Autoplay bloqueado: queda el poster */
-				});
-			};
-
-			syncBgVideo();
-			desktopBg.addEventListener("change", syncBgVideo);
+			mountBgVideo(bgVideo, bgMedia, { reduceMotion });
 		</script>
 	</body>
 </html>
